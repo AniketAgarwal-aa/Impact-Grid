@@ -7,7 +7,7 @@ from ..database import get_db
 from ..models import Sprint, SprintTask, User, ChangeRequest, Project
 from ..dependencies import get_current_user
 
-router = APIRouter(prefix="/sprints", tags=["Sprints"])
+router = APIRouter(prefix="/api/sprints", tags=["Sprints"])
 
 @router.get("/{project_id}", response_model=List[dict])
 def get_sprints(project_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):

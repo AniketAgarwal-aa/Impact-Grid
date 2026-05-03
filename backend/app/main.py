@@ -44,19 +44,17 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-frontend_urls = [
-    url.strip()
-    for url in os.environ.get(
-        "FRONTEND_URL",
-        "http://localhost:5173,http://localhost:3000,http://localhost:8080,http://127.0.0.1:8080",
-    ).split(",")
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=frontend_urls if "*" not in frontend_urls else ["*"],
+    allow_origins=[
+        "https://impact-sensei.vercel.app",
+        "https://impact-sensei-mlj0sg8ha-aniketagarwal-aas-projects.vercel.app",
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://localhost:8080",
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
     expose_headers=["*"],
 )
@@ -223,8 +221,12 @@ async def root():
 
 
 @app.get("/api/health")
-async def health():
-    return {"status": "healthy", "version": "5.0.0"}
+async def health_check():
+    return {"status": "healthy", "message": "ImpactSensei API Running"}
+
+@app.get("/health")
+async def health_check_redirect():
+    return {"status": "healthy", "message": "ImpactSensei API Running"}
 
 
 @app.get("/api/settings/public")
