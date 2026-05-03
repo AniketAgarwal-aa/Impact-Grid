@@ -24,6 +24,7 @@ function getPreferredRole(pathname: string) {
 }
 
 export default function Login() {
+  const [submitting, setSubmitting] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -71,7 +72,9 @@ export default function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     clearError();
+    setSubmitting(true);
     try {
       const data = await api.login(email, password, rememberMe);
 
@@ -88,6 +91,8 @@ export default function Login() {
       navigate(getRoleRedirect(data.user.role));
     } catch (err: unknown) {
       toast.error(err.message || "Login failed");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -334,10 +339,10 @@ export default function Login() {
                 <button
                   id="login-submit"
                   type="submit"
-                  disabled={isLoading}
+                  disabled={submitting || isLoading}
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-all shadow-lg shadow-primary/20"
                 >
-                  {isLoading
+                  {submitting || isLoading
                     ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                     : <><LogIn className="h-4 w-4" /> Sign In</>
                   }

@@ -22,6 +22,7 @@ from ..auth import (
 )
 from ..database import get_db
 from ..dependencies import get_current_user
+from ..real_ip import get_client_ip
 from ..models import User, UserSession
 from ..schemas import (
     ChangePasswordRequest,
@@ -115,7 +116,7 @@ async def options_login(request: Request):
 
 @router.post("/login")
 async def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = get_client_ip(request)
     attempt_key = f"{client_ip}:{data.email.lower()}"
     now = time.time()
     recent_attempts = [
@@ -163,7 +164,7 @@ async def login(data: LoginRequest, request: Request, db: Session = Depends(get_
     db.commit()
     _login_attempt_cache.pop(attempt_key, None)
 
-    ip = request.client.host if request.client else None
+    ip = get_client_ip(request)
     session_duration = timedelta(days=30) if data.remember_me else timedelta(days=7)
     session = UserSession(
         user_id=user.id,

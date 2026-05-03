@@ -9,11 +9,23 @@ from sqlalchemy import create_engine, event, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./impact_sensei.db")
+_raw = (
+    os.getenv("DATABASE_URL", "sqlite:///./impact_sensei.db").strip().strip('"')
+)
 
-connect_args = {}
+# Render/Heroku often provide postgres:// ; SQLAlchemy 2 expects postgresql://
+if _raw.startswith("postgres://"):
+    _raw = _raw.replace("postgres://", "postgresql://", 1)
+
+DATABASE_URL = _raw
+
+connect_args: dict = {}
 if DATABASE_URL.startswith("sqlite"):
     connect_args = {"check_same_thread": False}
+elif DATABASE_URL.startswith("postgresql"):
+    # Hosted Postgres (e.g. Render) typically requires TLS; skip for local dev DBs
+    if "localhost" not in DATABASE_URL and "127.0.0.1" not in DATABASE_URL:
+        connect_args = {"sslmode": "require"}
 
 engine = create_engine(DATABASE_URL, connect_args=connect_args)
 

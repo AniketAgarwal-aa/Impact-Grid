@@ -4,15 +4,21 @@ Three-tier: Admin / Project Manager / Client
 New: WebSockets, 2FA, Analytics, Webhooks
 """
 
+import logging
 import os
 
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request
+from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from starlette.exceptions import HTTPException as StarletteHTTPException
 import ipaddress
 
 from .database import init_db, SessionLocal
+from .real_ip import get_client_ip
+
+logger = logging.getLogger(__name__)
 from .models import IpWhitelist, AuditLog
 from .routers import (
     admin,
@@ -52,6 +58,7 @@ app.add_middleware(
         "http://localhost:5173",
         "http://localhost:3000",
     ],
+    allow_origin_regex=r"https://.*\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -68,8 +75,10 @@ async def add_security_headers(request: Request, call_next):
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    # Log the exception here in a real production environment
-    print(f"Global exception caught: {exc}")
+    """Log unexpected errors; defer Starlette/FastAPI HTTP errors to the normal JSON handler."""
+    if isinstance(exc, StarletteHTTPException):
+        return await http_exception_handler(request, exc)
+    logger.exception("Unhandled error: %s", exc)
     return JSONResponse(
         status_code=500,
         content={"detail": "Internal Server Error"},
@@ -80,10 +89,10 @@ async def ip_whitelisting_middleware(request: Request, call_next):
     # Only protect API routes
     if not request.url.path.startswith("/api/"):
         return await call_next(request)
-        
-    client_ip = request.client.host if request.client else "127.0.0.1"
-    
-    # Simple check for test/dev
+
+    client_ip = get_client_ip(request)
+
+    # Simple check for test/dev (direct local access)
     if client_ip in ("127.0.0.1", "::1", "localhost"):
         return await call_next(request)
 
@@ -92,7 +101,7 @@ async def ip_whitelisting_middleware(request: Request, call_next):
         whitelists = db.query(IpWhitelist).all()
         if not whitelists:
             return await call_next(request)  # No whitelists configured = allow all
-            
+
         is_allowed = False
         client_ip_obj = ipaddress.ip_address(client_ip)
         
@@ -123,8 +132,8 @@ rate_limits = defaultdict(list)
 async def rate_limiting_middleware(request: Request, call_next):
     if not request.url.path.startswith("/api/"):
         return await call_next(request)
-        
-    client_ip = request.client.host if request.client else "127.0.0.1"
+
+    client_ip = get_client_ip(request)
     now = time.time()
     
     # Clean up old requests
