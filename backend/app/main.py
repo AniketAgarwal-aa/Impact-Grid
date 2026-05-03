@@ -51,12 +51,10 @@ app.add_middleware(
         "https://impact-sensei-mlj0sg8ha-aniketagarwal-aas-projects.vercel.app",
         "http://localhost:5173",
         "http://localhost:3000",
-        "http://localhost:8080",
     ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"],
 )
 
 @app.middleware("http")
