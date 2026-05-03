@@ -352,13 +352,7 @@ export default function Login() {
                 </button>
               </form>
 
-              <div className="rounded-xl bg-muted/50 border border-border p-3 text-xs">
-                <p className="font-semibold text-foreground mb-1">🔑 Demo credentials</p>
-                <p className="text-muted-foreground">
-                  <span className="font-mono">aniketagarwal359@gmail.com</span>{" "}
-                  / <span className="font-mono">password</span>
-                </p>
-              </div>
+
 
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <Link
