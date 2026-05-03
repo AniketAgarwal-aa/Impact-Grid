@@ -44,6 +44,21 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
+def _widen_user_sessions_token_postgres() -> None:
+    """Existing Postgres DBs may still have VARCHAR(255); JWT refresh tokens are longer."""
+    if not DATABASE_URL.startswith("postgresql"):
+        return
+    try:
+        with engine.begin() as conn:
+            conn.execute(
+                text("ALTER TABLE user_sessions ALTER COLUMN token TYPE TEXT")
+            )
+        print("[OK] user_sessions.token widened to TEXT (Postgres)")
+    except Exception as e:
+        # Table missing, already TEXT, or permission — startup should not crash
+        print(f"[migrate] user_sessions.token skip: {e}")
+
+
 def get_db():
     db = SessionLocal()
     try:
@@ -150,6 +165,7 @@ def init_db():
     )
 
     Base.metadata.create_all(bind=engine)
+    _widen_user_sessions_token_postgres()
 
     db = SessionLocal()
     try:

@@ -104,16 +104,6 @@ class LoginRequest(BaseModel):
     password: str
     remember_me: bool = False
 
-@router.options("/login")
-async def options_login(request: Request):
-    origin = request.headers.get("origin", "https://impact-sensei.vercel.app")
-    response = JSONResponse(content={})
-    response.headers["Access-Control-Allow-Origin"] = origin
-    response.headers["Access-Control-Allow-Credentials"] = "true"
-    response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-    return response
-
 @router.post("/login")
 async def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
     client_ip = get_client_ip(request)
@@ -195,11 +185,7 @@ async def login(data: LoginRequest, request: Request, db: Session = Depends(get_
             "force_password_change": user.force_password_change,
         },
     }
-    origin = request.headers.get("origin", "https://impact-sensei.vercel.app")
-    response = JSONResponse(content=response_data)
-    response.headers["Access-Control-Allow-Origin"] = origin
-    response.headers["Access-Control-Allow-Credentials"] = "true"
-    return response
+    return JSONResponse(content=response_data)
 
 
 @router.post("/refresh")

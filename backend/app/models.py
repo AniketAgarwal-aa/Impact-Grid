@@ -92,7 +92,8 @@ class UserSession(Base):
     user_id = Column(
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    token = Column(String(255))
+    # JWT refresh tokens exceed 255 chars (email + role + jti + expiry)
+    token = Column(Text)
     ip_address = Column(String(45))
     user_agent = Column(Text)
     expires_at = Column(DateTime)

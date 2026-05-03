@@ -17,8 +17,6 @@ import ipaddress
 
 from .database import init_db, SessionLocal
 from .real_ip import get_client_ip
-
-logger = logging.getLogger(__name__)
 from .models import IpWhitelist, AuditLog
 from .routers import (
     admin,
@@ -42,6 +40,8 @@ from .routers import (
     websocket,
 )
 
+logger = logging.getLogger(__name__)
+
 app = FastAPI(
     title="ImpactSensei API",
     description="Enterprise Impact Prediction Platform — v5.1 (WebSockets · 2FA · Analytics · Webhooks)",
@@ -50,16 +50,11 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+# Bearer tokens in headers (not cookies) — allow any origin so every Vercel preview works.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://impact-sensei.vercel.app",
-        "https://impact-sensei-mlj0sg8ha-aniketagarwal-aas-projects.vercel.app",
-        "http://localhost:5173",
-        "http://localhost:3000",
-    ],
-    allow_origin_regex=r"https://.*\.vercel\.app$",
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
