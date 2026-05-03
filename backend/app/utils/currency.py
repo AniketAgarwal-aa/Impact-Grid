@@ -1,0 +1,1 @@
+def format_currency(val): return str(val)

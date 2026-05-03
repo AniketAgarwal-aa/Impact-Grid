@@ -1,0 +1,65 @@
+# Dependencies
+node_modules/
+.venv/
+venv/
+ENV/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+*.egg
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment
+.env
+.env.local
+.env.production
+.env.development
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+
+# Testing
+coverage/
+.nyc_output/
+.pytest_cache/
+.tox/
+playwright-report/
+test-results/
+*.test.js
+*.spec.js
+
+# Temporary files
+*.tmp
+*.cache
+.cache/
+*.bak
+*.backup
+
+# Deployment
+.DS_Store
+.vercel
+.render

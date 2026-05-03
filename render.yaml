@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: impactsensei-backend
+    runtime: python
+    repo: https://github.com/YOUR_USERNAME/impact-sensei
+    branch: main
+    buildCommand: cd backend && pip install -r requirements.txt
+    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: impactsensei-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+
+  - type: postgresql
+    name: impactsensei-db
+    databaseName: impactsensei
+    plan: free
