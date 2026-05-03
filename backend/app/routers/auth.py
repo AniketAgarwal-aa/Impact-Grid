@@ -95,8 +95,15 @@ async def register(data: UserRegister, request: Request, db: Session = Depends(g
     }
 
 
+from pydantic import BaseModel
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+    remember_me: bool = False
+
 @router.post("/login")
-async def login(data: UserLogin, request: Request, db: Session = Depends(get_db)):
+async def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
     client_ip = request.client.host if request.client else "unknown"
     attempt_key = f"{client_ip}:{data.email.lower()}"
     now = time.time()
