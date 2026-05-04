@@ -203,20 +203,25 @@ def init_db():
         # Hardcoded Admin User
         from .auth import hash_password
 
-        admin_email = "aniketagarwal359@gmail.com"
-        existing_admin = db.query(User).filter(User.email == admin_email).first()
-        if not existing_admin:
-            admin_user = User(
-                email=admin_email,
-                password_hash=hash_password("password"),
-                full_name="Aniket Agarwal",
-                role="admin",
-                is_active=True,
-                is_verified=True
-            )
-            db.add(admin_user)
-            db.commit()
-            print(f"[OK] Hardcoded admin '{admin_email}' created.")
+        seeded_admins = [
+            ("aniketagarwal359@gmail.com", "Aniket Agarwal"),
+            ("navyagupta1820@gmail.com", "Navya Gupta"),
+        ]
+
+        for admin_email, full_name in seeded_admins:
+            existing_admin = db.query(User).filter(User.email == admin_email).first()
+            if not existing_admin:
+                admin_user = User(
+                    email=admin_email,
+                    password_hash=hash_password("password"),
+                    full_name=full_name,
+                    role="admin",
+                    is_active=True,
+                    is_verified=True,
+                )
+                db.add(admin_user)
+                db.commit()
+                print(f"[OK] Seeded admin '{admin_email}' created (default password).")
 
         db.commit()
         print("[OK] Database initialized successfully (v5.1)")
