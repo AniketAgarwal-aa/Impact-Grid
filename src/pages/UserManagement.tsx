@@ -17,7 +17,7 @@ export default function UserManagement() {
     email: "",
     password: "",
     full_name: "",
-    role: "user",
+    role: "client",
     department: "",
     designation: "",
     is_verified: true,
@@ -100,8 +100,8 @@ export default function UserManagement() {
           className="rounded-xl border border-border bg-background px-4 py-2.5 text-sm"
         >
           <option value="">All Roles</option>
-          <option value="user">User</option>
-          <option value="project_manager">PM</option>
+          <option value="client">Client</option>
+          <option value="project_manager">Project Manager</option>
           <option value="admin">Admin</option>
         </select>
       </div>
@@ -131,8 +131,8 @@ export default function UserManagement() {
                     onChange={(e) => handleRoleChange(u.id, e.target.value)}
                     className="rounded-lg border border-border bg-background px-2 py-1 text-xs"
                   >
-                    <option value="user">User</option>
-                    <option value="project_manager">PM</option>
+                    <option value="client">Client</option>
+                    <option value="project_manager">Project Manager</option>
                     <option value="admin">Admin</option>
                   </select>
                 </td>
@@ -195,7 +195,7 @@ export default function UserManagement() {
                 onChange={(e) => setForm({ ...form, role: e.target.value })}
                 className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm"
               >
-                <option value="user">User</option>
+                <option value="client">Client</option>
                 <option value="project_manager">Project Manager</option>
                 <option value="admin">Admin</option>
               </select>

@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from .auth import decode_token
 from .database import get_db
-from .models import User
+from .models import SystemSetting, User
 
 bearer = HTTPBearer(auto_error=False)
 
@@ -60,6 +60,15 @@ def get_current_user(
     db: Session = Depends(get_db),
 ) -> User:
     user, payload = _resolve_user_from_token(credentials, db)
+    # If email verification is enabled, block unverified users for ALL protected endpoints.
+    setting = (
+        db.query(SystemSetting)
+        .filter(SystemSetting.key == "auth.require_email_verification")
+        .first()
+    )
+    require_verify = setting.value.lower() == "true" if setting and setting.value else False
+    if require_verify and not user.is_verified:
+        raise HTTPException(status_code=403, detail="Email verification required")
     if _is_tfa_enabled(user) and payload.get("tfa_verified") is not True:
         raise HTTPException(status_code=401, detail="2FA verification required")
     return user

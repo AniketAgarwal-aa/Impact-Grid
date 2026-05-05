@@ -96,6 +96,8 @@ async def submit_change_request(
     cr = db.query(ChangeRequest).filter(ChangeRequest.id == cr_id).first()
     if not cr:
         raise HTTPException(404, "Not found")
+    if current_user.role != "client":
+        raise HTTPException(status_code=403, detail="Only clients can submit change requests")
     if cr.status not in ("draft", "rejected", "analyzed"):
         raise HTTPException(400, f"Cannot submit from status: {cr.status}")
     cr.status = "submitted"

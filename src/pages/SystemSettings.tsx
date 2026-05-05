@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/services/api";
 import { toast } from "@/components/common/Toast";
 import { Save, Settings } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 export default function SystemSettings() {
   const [settings, setSettings] = useState<any[]>([]);
@@ -18,6 +19,9 @@ export default function SystemSettings() {
     try {
       await api.updateSetting(key, editing[key]);
       toast.success(`Setting '${key}' updated`);
+      // Refresh settings so other UIs pick it up
+      const next = await api.getSettings();
+      setSettings(next);
       setEditing((e) => {
         const n = { ...e };
         delete n[key];
@@ -55,23 +59,58 @@ export default function SystemSettings() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={
-                        editing[s.key] !== undefined ? editing[s.key] : s.value
-                      }
-                      onChange={(e) =>
-                        setEditing({ ...editing, [s.key]: e.target.value })
-                      }
-                      className="w-48 rounded-lg border border-border bg-background px-3 py-1.5 text-sm focus:border-primary outline-none"
-                    />
-                    {editing[s.key] !== undefined && (
-                      <button
-                        onClick={() => handleSave(s.key)}
-                        className="rounded-lg bg-primary p-1.5 text-primary-foreground hover:bg-primary/90"
-                      >
-                        <Save className="h-3.5 w-3.5" />
-                      </button>
+                    {s.type === "boolean" ? (
+                      <>
+                        <Switch
+                          checked={
+                            (editing[s.key] !== undefined
+                              ? editing[s.key]
+                              : s.value
+                            )
+                              ?.toString()
+                              .toLowerCase() === "true"
+                          }
+                          onCheckedChange={(checked) =>
+                            setEditing({
+                              ...editing,
+                              [s.key]: checked ? "true" : "false",
+                            })
+                          }
+                        />
+                        {editing[s.key] !== undefined && (
+                          <button
+                            onClick={() => handleSave(s.key)}
+                            className="rounded-lg bg-primary p-1.5 text-primary-foreground hover:bg-primary/90"
+                            title="Save"
+                          >
+                            <Save className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <input
+                          type="text"
+                          value={
+                            editing[s.key] !== undefined
+                              ? editing[s.key]
+                              : s.value
+                          }
+                          onChange={(e) =>
+                            setEditing({ ...editing, [s.key]: e.target.value })
+                          }
+                          className="w-48 rounded-lg border border-border bg-background px-3 py-1.5 text-sm focus:border-primary outline-none"
+                        />
+                        {editing[s.key] !== undefined && (
+                          <button
+                            onClick={() => handleSave(s.key)}
+                            className="rounded-lg bg-primary p-1.5 text-primary-foreground hover:bg-primary/90"
+                            title="Save"
+                          >
+                            <Save className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>

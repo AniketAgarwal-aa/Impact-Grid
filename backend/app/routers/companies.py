@@ -206,8 +206,8 @@ async def assign_pm(
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    if current_user.email != SUPER_ADMIN_EMAIL:
-        raise HTTPException(status_code=403, detail="Only super admin can change roles")
+    if user.email == SUPER_ADMIN_EMAIL:
+        raise HTTPException(status_code=403, detail="Cannot modify super admin role")
     if user.role == "admin":
         raise HTTPException(status_code=403, detail="Cannot change an admin into PM")
     user.company_id = company_id

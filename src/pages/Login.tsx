@@ -33,6 +33,11 @@ export default function Login() {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotSent, setForgotSent] = useState(false);
 
+  // Email verification (OTP)
+  const [verifyMode, setVerifyMode] = useState(false);
+  const [verifyCode, setVerifyCode] = useState("");
+  const [resending, setResending] = useState(false);
+
   // 2FA challenge
   const [tfaMode, setTfaMode] = useState(false);
   const [tfaCode, setTfaCode] = useState("");
@@ -90,9 +95,48 @@ export default function Login() {
       toast.success(`Welcome back, ${data.user.full_name?.split(" ")[0]}! 👋`);
       navigate(getRoleRedirect(data.user.role));
     } catch (err: unknown) {
-      toast.error(err.message || "Login failed");
+      const msg = err?.message || "Login failed";
+      // If verification is required, show inline OTP verification UI.
+      if (
+        /verify|verification|not verified/i.test(msg) ||
+        /Email not verified/i.test(msg)
+      ) {
+        setVerifyMode(true);
+        toast.error("Email verification required. Enter the 6-digit code.");
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleVerifyEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await api.verifyEmail(verifyCode);
+      toast.success("Email verified. You can sign in now.");
+      setVerifyMode(false);
+      setVerifyCode("");
+    } catch (err: unknown) {
+      toast.error(err?.message || "Verification failed");
+    }
+  };
+
+  const handleResendVerify = async () => {
+    if (!email) {
+      toast.error("Enter your email first.");
+      return;
+    }
+    if (resending) return;
+    setResending(true);
+    try {
+      await api.resendVerification(email);
+      toast.info("Verification code resent. Check your inbox (or server console).");
+    } catch (err: unknown) {
+      toast.error(err?.message || "Could not resend code");
+    } finally {
+      setResending(false);
     }
   };
 
@@ -225,6 +269,56 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => { setTfaMode(false); setPendingTokens(null); setTfaCode(""); }}
+                  className="flex w-full items-center justify-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+                >
+                  <ArrowLeft className="h-3 w-3" /> Back to login
+                </button>
+              </form>
+            </div>
+
+          /* ── Email Verification (OTP) ── */
+          ) : verifyMode ? (
+            <div className="space-y-6">
+              <div className="flex items-center gap-4 p-5 rounded-2xl border border-amber-500/20 bg-amber-500/5">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/10 shrink-0">
+                  <Shield className="h-7 w-7 text-amber-600" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold">Verify Email</h1>
+                  <p className="text-sm text-muted-foreground">
+                    Enter the 6-digit code sent to <span className="font-medium">{email || "your email"}</span>
+                  </p>
+                </div>
+              </div>
+              <form onSubmit={handleVerifyEmail} className="space-y-4">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={verifyCode}
+                  onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, ""))}
+                  required
+                  autoFocus
+                  className="w-full rounded-xl border border-border bg-background px-4 py-4 text-center text-3xl font-mono tracking-[0.6em] focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                  placeholder="000000"
+                />
+                <button
+                  type="submit"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
+                >
+                  Verify
+                </button>
+                <button
+                  type="button"
+                  disabled={resending}
+                  onClick={handleResendVerify}
+                  className="w-full rounded-xl border border-border py-3 text-sm font-semibold hover:bg-accent transition-colors disabled:opacity-50"
+                >
+                  {resending ? "Resending…" : "Resend Code"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setVerifyMode(false); setVerifyCode(""); }}
                   className="flex w-full items-center justify-center gap-1 text-sm text-muted-foreground hover:text-foreground"
                 >
                   <ArrowLeft className="h-3 w-3" /> Back to login

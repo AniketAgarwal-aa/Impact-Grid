@@ -239,6 +239,13 @@ async def public_settings():
 
     db = SessionLocal()
     try:
+        defaults = {
+            "app.name": "ImpactSensei",
+            "app.version": "5.1.0",
+            "app.tagline": "Master Your Project Changes",
+            "currency.default": "INR",
+            "currency.exchange_rate_usd_to_inr": "83.5",
+        }
         keys = [
             "app.name",
             "app.version",
@@ -247,7 +254,7 @@ async def public_settings():
             "currency.exchange_rate_usd_to_inr",
         ]
         settings = db.query(SystemSetting).filter(SystemSetting.key.in_(keys)).all()
-        result = {s.key: s.value for s in settings}
+        result = {**defaults, **{s.key: s.value for s in settings if s.value is not None}}
 
         # Also return all available rates
         rates = db.query(ExchangeRate).filter(ExchangeRate.from_currency == "USD").all()

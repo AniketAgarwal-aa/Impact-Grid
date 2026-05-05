@@ -88,6 +88,10 @@ async def create_user(
     existing = db.query(User).filter(User.email == data.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
+    if data.role == "admin" and current_user.email != SUPER_ADMIN_EMAIL:
+        raise HTTPException(
+            status_code=403, detail="Only super admin can create admin accounts"
+        )
     verification_token = generate_verification_token()
     user = User(
         email=data.email,
@@ -134,13 +138,20 @@ async def update_user(
     incoming = data.model_dump(exclude_unset=True)
 
     # Role lock:
-    # - Only super admin can change roles.
+    # - Only super admin can assign or remove the admin role.
+    # - Admins can freely move users between client <-> project_manager.
     # - Nobody can change super admin's role.
     if "role" in incoming:
-        if current_user.email != SUPER_ADMIN_EMAIL:
-            raise HTTPException(status_code=403, detail="Only super admin can change roles")
         if user.email == SUPER_ADMIN_EMAIL:
             raise HTTPException(status_code=403, detail="Cannot modify super admin role")
+        old_role = user.role
+        new_role = incoming["role"]
+        if old_role == "admin" or new_role == "admin":
+            if current_user.email != SUPER_ADMIN_EMAIL:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Only super admin can assign or remove admin role",
+                )
     old = {"role": user.role, "is_active": user.is_active}
     for k, v in incoming.items():
         setattr(user, k, v)
@@ -192,10 +203,15 @@ async def update_role(
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    if current_user.email != SUPER_ADMIN_EMAIL:
-        raise HTTPException(status_code=403, detail="Only super admin can change roles")
     if user.email == SUPER_ADMIN_EMAIL:
         raise HTTPException(status_code=403, detail="Cannot modify super admin role")
+    # Only super admin can assign/remove the admin role.
+    if user.role == "admin" or data.role == "admin":
+        if current_user.email != SUPER_ADMIN_EMAIL:
+            raise HTTPException(
+                status_code=403,
+                detail="Only super admin can assign or remove admin role",
+            )
     old_role = user.role
     user.role = data.role
     user.updated_at = datetime.utcnow()

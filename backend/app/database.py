@@ -222,6 +222,14 @@ def init_db():
                 db.add(admin_user)
                 db.commit()
                 print(f"[OK] Seeded admin '{admin_email}' created (default password).")
+            else:
+                # Ensure seeded admins never drift to PM/client
+                if existing_admin.role != "admin" or not existing_admin.is_verified:
+                    existing_admin.role = "admin"
+                    existing_admin.is_verified = True
+                    existing_admin.is_active = True
+                    db.commit()
+                    print(f"[OK] Seeded admin '{admin_email}' reconciled to role=admin.")
 
         db.commit()
         print("[OK] Database initialized successfully (v5.1)")

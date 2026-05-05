@@ -62,10 +62,10 @@ export default function Navbar() {
           {showCurrency && (
             <>
               <div
-                className="fixed inset-0 z-10"
+                className="fixed inset-0 z-40"
                 onClick={() => setShowCurrency(false)}
               />
-              <div className="absolute right-0 top-full z-20 mt-1 w-28 rounded-xl border border-border bg-card shadow-xl overflow-hidden">
+              <div className="absolute right-0 top-full z-[60] mt-1 w-28 rounded-xl border border-border bg-card shadow-xl overflow-hidden">
                 {CURRENCIES.map((c) => (
                   <button
                     key={c}

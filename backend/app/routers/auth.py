@@ -10,6 +10,7 @@ import time
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 
 from ..auth import (
     create_access_token,
@@ -48,6 +49,98 @@ MAX_LOGIN_ATTEMPTS = 5
 LOGIN_WINDOW_SECONDS = 15 * 60
 _login_attempt_cache: dict[str, list[float]] = {}
 
+VERIFY_CODE_TTL_MINUTES = 15
+RESEND_MIN_SECONDS = 60
+RESEND_MAX_PER_HOUR = 3
+
+
+def _require_email_verification(db: Session) -> bool:
+    from ..models import SystemSetting
+
+    setting = (
+        db.query(SystemSetting)
+        .filter(SystemSetting.key == "auth.require_email_verification")
+        .first()
+    )
+    return setting.value.lower() == "true" if setting and setting.value else False
+
+
+def _load_prefs(user: User) -> dict:
+    try:
+        return json.loads(user.preferences or "{}")
+    except Exception:
+        return {}
+
+
+def _save_prefs(user: User, prefs: dict) -> None:
+    user.preferences = json.dumps(prefs)
+
+
+def _set_verification_meta(user: User) -> None:
+    prefs = _load_prefs(user)
+    now = datetime.utcnow()
+    prefs.setdefault("email_verification", {})
+    prefs["email_verification"]["expires_at"] = (
+        now + timedelta(minutes=VERIFY_CODE_TTL_MINUTES)
+    ).isoformat()
+    prefs["email_verification"]["last_sent_at"] = now.isoformat()
+    _save_prefs(user, prefs)
+
+
+def _can_resend_verification(user: User) -> tuple[bool, str | None]:
+    prefs = _load_prefs(user)
+    meta = (prefs.get("email_verification") or {}) if isinstance(prefs, dict) else {}
+    now = datetime.utcnow()
+
+    # cooldown
+    last_sent_raw = meta.get("last_sent_at")
+    if last_sent_raw:
+        try:
+            last_sent = datetime.fromisoformat(last_sent_raw)
+            if (now - last_sent).total_seconds() < RESEND_MIN_SECONDS:
+                return False, "Please wait before requesting another code."
+        except Exception:
+            pass
+
+    # per-hour window
+    window_start_raw = meta.get("window_start_at")
+    count = int(meta.get("send_count") or 0)
+    if window_start_raw:
+        try:
+            window_start = datetime.fromisoformat(window_start_raw)
+            if (now - window_start).total_seconds() >= 3600:
+                window_start = now
+                count = 0
+        except Exception:
+            window_start = now
+            count = 0
+    else:
+        window_start = now
+        count = 0
+
+    if count >= RESEND_MAX_PER_HOUR:
+        return False, "Too many verification requests. Please try again later."
+
+    meta["window_start_at"] = window_start.isoformat()
+    meta["send_count"] = count + 1
+    prefs["email_verification"] = meta
+    _save_prefs(user, prefs)
+    return True, None
+
+
+def _verification_not_expired(user: User) -> bool:
+    prefs = _load_prefs(user)
+    meta = (prefs.get("email_verification") or {}) if isinstance(prefs, dict) else {}
+    expires_raw = meta.get("expires_at")
+    if not expires_raw:
+        # Back-compat: if no expiry stored, treat as valid.
+        return True
+    try:
+        expires = datetime.fromisoformat(expires_raw)
+        return expires >= datetime.utcnow()
+    except Exception:
+        return True
+
 
 @router.post("/register")
 async def register(data: UserRegister, request: Request, db: Session = Depends(get_db)):
@@ -57,15 +150,7 @@ async def register(data: UserRegister, request: Request, db: Session = Depends(g
 
     verification_token = generate_verification_token()
 
-    # Check if email verification is required
-    from ..models import SystemSetting
-
-    setting = (
-        db.query(SystemSetting)
-        .filter(SystemSetting.key == "auth.require_email_verification")
-        .first()
-    )
-    require_verify = setting.value.lower() == "true" if setting else False
+    require_verify = _require_email_verification(db)
 
     user = User(
         email=data.email,
@@ -77,6 +162,8 @@ async def register(data: UserRegister, request: Request, db: Session = Depends(g
         is_verified=not require_verify,  # Auto-verify if not required
         role="client",  # v5.0: default is client
     )
+    if require_verify:
+        _set_verification_meta(user)
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -130,7 +217,8 @@ async def login(data: LoginRequest, request: Request, db: Session = Depends(get_
             status_code=403,
             detail="Account is deactivated. Contact your administrator.",
         )
-    if not user.is_verified:
+    # Enforce verification only when system setting requires it.
+    if _require_email_verification(db) and not user.is_verified:
         raise HTTPException(
             status_code=403, detail="Email not verified. Please check your inbox."
         )
@@ -196,6 +284,8 @@ async def refresh_token(data: RefreshTokenRequest, db: Session = Depends(get_db)
     user = db.query(User).filter(User.id == int(payload.get("sub", 0))).first()
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="User not found or inactive")
+    if _require_email_verification(db) and not user.is_verified:
+        raise HTTPException(status_code=403, detail="Email verification required")
 
     session = (
         db.query(UserSession)
@@ -242,11 +332,19 @@ async def logout(
 
 @router.post("/verify-email")
 async def verify_email(data: VerifyEmailRequest, db: Session = Depends(get_db)):
+    # Support verifying with token only (6-digit code) without requiring auth.
     user = db.query(User).filter(User.email_verification_token == data.token).first()
     if not user:
         raise HTTPException(status_code=400, detail="Invalid verification code")
+    if not _verification_not_expired(user):
+        raise HTTPException(status_code=400, detail="Verification code expired")
     user.is_verified = True
     user.email_verification_token = None
+    # Clear meta in prefs
+    prefs = _load_prefs(user)
+    if isinstance(prefs, dict) and "email_verification" in prefs:
+        prefs.pop("email_verification", None)
+        _save_prefs(user, prefs)
     db.commit()
     send_welcome_email(user.email, user.full_name)
     log_audit(db, user.id, "VERIFY_EMAIL", "user", user.id)
@@ -262,8 +360,14 @@ async def resend_verification(
         return {
             "message": "If the email exists and is unverified, a code has been sent."
         }
+    if not _require_email_verification(db):
+        return {"message": "Email verification is not required."}
+    ok, reason = _can_resend_verification(user)
+    if not ok:
+        raise HTTPException(status_code=429, detail=reason or "Too many requests")
     token = generate_verification_token()
     user.email_verification_token = token
+    _set_verification_meta(user)
     db.commit()
     send_verification_email(data.email, token)
     return {"message": "Verification email sent"}
@@ -306,6 +410,10 @@ async def google_auth(request: Request, db: Session = Depends(get_db)):
                 db.add(user)
                 db.commit()
                 db.refresh(user)
+            # If verification is required, do not allow google login for unverified
+            # (covers legacy accounts that might have is_verified=false).
+            if _require_email_verification(db) and not user.is_verified:
+                raise HTTPException(status_code=403, detail="Email verification required")
                 
             # Create session
             access_token = create_access_token(

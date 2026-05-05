@@ -41,7 +41,7 @@ def send_verification_email(email: str, token: str):
         f"<h2>Verify Your Email</h2>"
         f"<p><strong>Your verification code:</strong> {token}</p>"
         f"<p>Or verify via link: <a href='{url}'>Verify email</a></p>"
-        f"<p>Expires in 24 hours.</p>",
+        f"<p>Expires in 15 minutes.</p>",
     )
 
 
