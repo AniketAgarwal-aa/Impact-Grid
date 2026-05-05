@@ -7,8 +7,17 @@ interface ThemeState {
 }
 
 export const useThemeStore = create<ThemeState>((set, get) => ({
-  theme:
-    (localStorage.getItem("impactsensei-theme") as "dark" | "light") || "dark",
+  theme: (() => {
+    const saved = localStorage.getItem("impactsensei-theme") as
+      | "dark"
+      | "light"
+      | null;
+    if (saved === "dark" || saved === "light") return saved;
+    const systemDark =
+      window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches;
+    return systemDark ? "dark" : "light";
+  })(),
   toggleTheme: () => {
     const next = get().theme === "dark" ? "light" : "dark";
     localStorage.setItem("impactsensei-theme", next);

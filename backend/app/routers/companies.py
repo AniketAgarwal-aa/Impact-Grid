@@ -18,6 +18,7 @@ from ..schemas import CompanyCreate, CompanyUpdate
 from ..utils.audit import log_audit
 
 router = APIRouter(prefix="/api/admin/companies", tags=["Companies"])
+SUPER_ADMIN_EMAIL = "aniketagarwal359@gmail.com"
 
 
 def slugify(name: str) -> str:
@@ -205,6 +206,10 @@ async def assign_pm(
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    if current_user.email != SUPER_ADMIN_EMAIL:
+        raise HTTPException(status_code=403, detail="Only super admin can change roles")
+    if user.role == "admin":
+        raise HTTPException(status_code=403, detail="Cannot change an admin into PM")
     user.company_id = company_id
     user.role = "project_manager"
     db.commit()

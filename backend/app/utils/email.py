@@ -16,6 +16,8 @@ APP_URL = os.getenv("APP_URL", "http://localhost:5173")
 def _send(to_email: str, subject: str, html_body: str):
     if not SMTP_USER or not SMTP_PASSWORD:
         print(f"[Email] SMTP not configured. Would send to {to_email}: {subject}")
+        # Print body so OTP / links are visible in Render logs during production debugging.
+        print(html_body)
         return
     try:
         msg = MIMEMultipart()
@@ -36,7 +38,10 @@ def send_verification_email(email: str, token: str):
     _send(
         email,
         "Verify Your ImpactSensei Account",
-        f"<h2>Verify Your Email</h2><p><a href='{url}'>Click here to verify</a></p><p>Expires in 24 hours.</p>",
+        f"<h2>Verify Your Email</h2>"
+        f"<p><strong>Your verification code:</strong> {token}</p>"
+        f"<p>Or verify via link: <a href='{url}'>Verify email</a></p>"
+        f"<p>Expires in 24 hours.</p>",
     )
 
 

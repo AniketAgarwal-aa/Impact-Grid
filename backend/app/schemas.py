@@ -84,7 +84,8 @@ class AdminUserCreate(BaseModel):
     company_id: Optional[int] = None
     department: Optional[str] = None
     designation: Optional[str] = None
-    is_verified: bool = True
+    # New users must verify email before login (OTP printed to logs if SMTP missing).
+    is_verified: bool = False
 
 
 class AdminUserUpdate(BaseModel):

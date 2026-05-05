@@ -3,7 +3,6 @@ import { api } from "@/services/api";
 import { toast } from "@/components/common/Toast";
 import { FileBarChart, Download, CalendarClock, Plus } from "lucide-react";
 import { useCurrencyStore } from "@/stores/currencyStore";
-import * as XLSX from "xlsx";
 
 export default function Reports() {
   const [projects, setProjects] = useState<any[]>([]);
@@ -32,53 +31,8 @@ export default function Reports() {
     }
   };
 
-  const exportJSON = () => {
-    if (!report) return;
-    const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `report_${selectedProject}.json`;
-    a.click();
-    toast.success("JSON Report exported");
-  };
-
-  const exportExcel = () => {
-    if (!report) return;
-    
-    // Summary Sheet
-    const summaryData = [
-      ["ImpactSensei Project Report"],
-      ["Project Name", report.project.name],
-      ["Status", report.project.status],
-      [],
-      ["Metric", "Value"],
-      ["Total Requirements", report.summary.total_requirements],
-      ["Change Requests", report.summary.total_change_requests],
-      ["Analyses Performed", report.summary.total_analyses],
-      ["Total Cost Increase", report.summary.total_cost_increase],
-      ["Total Time Increase (Days)", report.summary.total_time_increase_days],
-      ["Average Risk Score", report.summary.average_risk_score]
-    ];
-    const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
-
-    // CRs Sheet
-    const crsData = report.change_requests.map((cr: unknown) => ({
-      ID: cr.id,
-      Description: cr.description,
-      Status: cr.status,
-      Priority: cr.priority,
-      Cost: cr.latest_analysis?.cost_increase || 0,
-      Time: cr.latest_analysis?.time_increase || 0,
-      Risk: cr.latest_analysis?.risk_score || 0
-    }));
-    const wsCRs = XLSX.utils.json_to_sheet(crsData);
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
-    XLSX.utils.book_append_sheet(wb, wsCRs, "Change Requests");
-
-    XLSX.writeFile(wb, `ImpactSensei_Report_${report.project.name}.xlsx`);
-    toast.success("Excel Report exported");
+  const exportPDF = () => {
+    window.print();
   };
 
   return (
@@ -117,16 +71,10 @@ export default function Reports() {
                 </h2>
                 <div className="flex gap-2">
                   <button
-                    onClick={exportJSON}
+                    onClick={exportPDF}
                     className="flex items-center gap-2 rounded-xl border border-border px-3 py-1.5 text-sm hover:bg-accent"
                   >
-                    <Download className="h-4 w-4" /> JSON
-                  </button>
-                  <button
-                    onClick={exportExcel}
-                    className="flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-3 py-1.5 text-sm font-semibold hover:bg-primary/90"
-                  >
-                    <Download className="h-4 w-4" /> Excel (.xlsx)
+                    <Download className="h-4 w-4" /> PDF
                   </button>
                 </div>
               </div>

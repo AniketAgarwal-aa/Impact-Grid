@@ -50,6 +50,7 @@ const CLIENT_NAV: NavItem[] = [
   { label: "Compare", path: "/compare", icon: BarChart3 },
   { label: "Reports", path: "/reports", icon: FileText },
   { label: "Analytics", path: "/analytics", icon: TrendingUp },
+  { label: "Notifications", path: "/notifications", icon: Bell },
 ];
 
 // PROJECT MANAGER navigation
@@ -65,6 +66,7 @@ const PM_NAV: NavItem[] = [
   { label: "Reports", path: "/reports", icon: FileText },
   { label: "Analytics", path: "/analytics", icon: TrendingUp },
   { label: "Integrations", path: "/pm/integrations", icon: Plug },
+  { label: "Notifications", path: "/notifications", icon: Bell },
 ];
 
 // ADMIN navigation
@@ -82,6 +84,7 @@ const ADMIN_NAV: NavItem[] = [
   { label: "Integrations", path: "/admin/integrations", icon: Plug },
   { label: "System Settings", path: "/admin/settings", icon: Settings },
   { label: "Audit Logs", path: "/admin/audit", icon: ScrollText },
+  { label: "Notifications", path: "/notifications", icon: Bell },
 ];
 
 const ROLE_CONFIG = {

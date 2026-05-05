@@ -33,7 +33,7 @@ export default function Navbar() {
         : "bg-blue-500/10 text-blue-500";
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-border bg-card/50 backdrop-blur-sm px-6 gap-4">
+    <header className="relative z-50 flex h-16 items-center justify-between border-b border-border bg-card/50 backdrop-blur-sm px-6 gap-4">
       {/* Left — page title area (filled by breadcrumbs if needed) */}
       <div className="flex items-center gap-3">
         <span
@@ -103,7 +103,7 @@ export default function Navbar() {
 
         {/* Notifications */}
         <Link
-          to="/profile"
+          to="/notifications"
           className="relative rounded-xl border border-border p-2 hover:bg-accent transition-colors"
         >
           <Bell className="h-4 w-4" />

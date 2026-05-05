@@ -27,6 +27,7 @@ const Scenarios = React.lazy(() => import('@/pages/Scenarios'));
 const Compare = React.lazy(() => import('@/pages/Compare'));
 const Reports = React.lazy(() => import('@/pages/Reports'));
 const Profile = React.lazy(() => import('@/pages/Profile'));
+const Notifications = React.lazy(() => import('@/pages/Notifications'));
 
 // PM Pages
 const PMDashboard = React.lazy(() => import('@/pages/PMDashboard'));
@@ -85,6 +86,7 @@ export default function App() {
             <Route path="/scenarios" element={<Scenarios />} />
             <Route path="/compare" element={<Compare />} />
             <Route path="/reports" element={<Reports />} />
+            <Route path="/notifications" element={<Notifications />} />
             <Route path="/profile" element={<Profile />} />
             {/* v5.1 New Routes */}
             <Route path="/analytics" element={<AdvancedAnalytics />} />

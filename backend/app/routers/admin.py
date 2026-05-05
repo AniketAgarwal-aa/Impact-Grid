@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
-from ..auth import hash_password
+from ..auth import generate_verification_token, hash_password
 from ..database import get_db
 from ..dependencies import require_admin
 from ..models import (
@@ -24,8 +24,10 @@ from ..models import (
 )
 from ..schemas import AdminUserCreate, AdminUserUpdate, RoleUpdate, SettingUpdate
 from ..utils.audit import log_audit
+from ..utils.email import send_verification_email
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
+SUPER_ADMIN_EMAIL = "aniketagarwal359@gmail.com"
 
 
 @router.get("/users")
@@ -86,6 +88,7 @@ async def create_user(
     existing = db.query(User).filter(User.email == data.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
+    verification_token = generate_verification_token()
     user = User(
         email=data.email,
         password_hash=hash_password(data.password),
@@ -94,7 +97,9 @@ async def create_user(
         company_id=data.company_id,
         department=data.department,
         designation=data.designation,
-        is_verified=data.is_verified,
+        # Always require email verification for new accounts (admin/pm/client).
+        is_verified=False,
+        email_verification_token=verification_token,
         is_active=True,
         force_password_change=True,
     )
@@ -109,9 +114,10 @@ async def create_user(
         user.id,
         new_values={"email": data.email, "role": data.role},
     )
+    send_verification_email(data.email, verification_token)
     return {
         "id": user.id,
-        "message": "User created. Force password change on first login.",
+        "message": "User created. Verification code sent to email.",
     }
 
 
@@ -125,8 +131,18 @@ async def update_user(
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    incoming = data.model_dump(exclude_unset=True)
+
+    # Role lock:
+    # - Only super admin can change roles.
+    # - Nobody can change super admin's role.
+    if "role" in incoming:
+        if current_user.email != SUPER_ADMIN_EMAIL:
+            raise HTTPException(status_code=403, detail="Only super admin can change roles")
+        if user.email == SUPER_ADMIN_EMAIL:
+            raise HTTPException(status_code=403, detail="Cannot modify super admin role")
     old = {"role": user.role, "is_active": user.is_active}
-    for k, v in data.model_dump(exclude_unset=True).items():
+    for k, v in incoming.items():
         setattr(user, k, v)
     user.updated_at = datetime.utcnow()
     db.commit()
@@ -137,7 +153,7 @@ async def update_user(
         "user",
         user_id,
         old_values=old,
-        new_values=data.model_dump(exclude_unset=True),
+        new_values=incoming,
     )
     return {"message": "User updated"}
 
@@ -176,6 +192,10 @@ async def update_role(
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    if current_user.email != SUPER_ADMIN_EMAIL:
+        raise HTTPException(status_code=403, detail="Only super admin can change roles")
+    if user.email == SUPER_ADMIN_EMAIL:
+        raise HTTPException(status_code=403, detail="Cannot modify super admin role")
     old_role = user.role
     user.role = data.role
     user.updated_at = datetime.utcnow()

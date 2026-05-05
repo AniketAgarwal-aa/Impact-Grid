@@ -195,29 +195,9 @@ export default function Results() {
     { subject: "Technical", A: riskBd.technical || 0 },
   ];
 
-  const handleExport = async (fmt: string) => {
-    try {
-      const data = await api.exportAnalysis(parseInt(id!), fmt);
-      if (data instanceof Blob) {
-        const url = URL.createObjectURL(data);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `analysis_${id}.${fmt}`;
-        a.click();
-      } else {
-        const blob = new Blob([JSON.stringify(data, null, 2)], {
-          type: "application/json",
-        });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `analysis_${id}.json`;
-        a.click();
-      }
-      toast.success(`Exported as ${fmt.toUpperCase()}`);
-    } catch {
-      toast.error("Export failed");
-    }
+  const handleExportPDF = () => {
+    // Browser print → “Save as PDF”
+    window.print();
   };
 
   const handleSave = async () => {
@@ -272,16 +252,10 @@ export default function Results() {
         </div>
         <div className="flex gap-2 flex-wrap">
           <button
-            onClick={() => handleExport("csv")}
+            onClick={handleExportPDF}
             className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm hover:bg-accent transition-colors"
           >
-            <Download className="h-4 w-4" /> CSV
-          </button>
-          <button
-            onClick={() => handleExport("json")}
-            className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm hover:bg-accent transition-colors"
-          >
-            <Download className="h-4 w-4" /> JSON
+            <Download className="h-4 w-4" /> PDF
           </button>
           <button
             onClick={() => setShowSave(true)}
@@ -315,7 +289,7 @@ export default function Results() {
           },
           {
             label: "Effort Increase",
-            value: `+${effort.increase || 0} pd`,
+            value: `+${effort.increase || 0} days of work`,
             pct: `+${effort.percentage || 0}%`,
             icon: Users,
             color: "text-purple-500",
