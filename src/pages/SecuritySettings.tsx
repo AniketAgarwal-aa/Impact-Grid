@@ -53,7 +53,6 @@ export default function SecuritySettings() {
     try {
       const res = await api.rotateEncryptionKey();
       toast.success("Key rotated successfully");
-      console.log("New key:", res.new_key);
       alert(`New Key (Save to .env): ${res.new_key}`);
       load();
     } catch (err: unknown) {

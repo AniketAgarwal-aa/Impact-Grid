@@ -95,7 +95,7 @@ export default function Landing() {
             <span className="block gradient-text mt-2">Changes</span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-            AI-powered impact prediction that helps you understand how
+            Impact prediction that helps you understand how
             requirement changes affect your project's timeline, budget, effort,
             and risk — before you commit.
           </p>
