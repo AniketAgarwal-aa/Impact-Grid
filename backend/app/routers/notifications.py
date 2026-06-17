@@ -69,6 +69,25 @@ async def mark_all_read(
     return {"message": "All marked as read"}
 
 
+@router.put("/{notif_id}/unread")
+async def mark_unread(
+    notif_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    n = (
+        db.query(Notification)
+        .filter(Notification.id == notif_id, Notification.user_id == current_user.id)
+        .first()
+    )
+    if not n:
+        raise HTTPException(404, "Not found")
+    n.is_read = False
+    n.read_at = None
+    db.commit()
+    return {"message": "Marked as unread"}
+
+
 @router.delete("/{notif_id}")
 async def delete_notification(
     notif_id: int,

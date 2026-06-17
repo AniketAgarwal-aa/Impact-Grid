@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "@/services/api";
+import { useAuthStore } from "@/stores/authStore";
 import { useCurrencyStore } from "@/stores/currencyStore";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { ProgressBar } from "@/components/common/ProgressBar";
@@ -134,6 +135,8 @@ function Section({
 
 export default function Results() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuthStore();
+  const isClient = user?.role === "client";
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [showSave, setShowSave] = useState(false);
@@ -196,9 +199,48 @@ export default function Results() {
   ];
 
   const handleExportPDF = () => {
-    // Browser print → “Save as PDF”
     window.print();
   };
+
+  // Client view: simplified cost + time only
+  if (isClient) {
+    return (
+      <div className="space-y-6 max-w-2xl mx-auto">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">Change Impact Summary</h1>
+            <p className="text-muted-foreground text-sm mt-1">{analysis.project_name}</p>
+          </div>
+          <button
+            onClick={handleExportPDF}
+            className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm hover:bg-accent print:hidden"
+          >
+            <Download className="h-4 w-4" /> PDF
+          </button>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-2xl border border-border bg-card p-6">
+            <TrendingUp className="h-8 w-8 text-emerald-500 mb-3" />
+            <p className="text-sm text-muted-foreground">Cost increase</p>
+            <p className="text-2xl font-bold mt-1">
+              {format(convert(cost.increase || 0, analysis.currency))}
+            </p>
+            <p className="text-xs text-muted-foreground mt-2">
+              +{cost.percentage || 0}% from original budget
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-6">
+            <Clock className="h-8 w-8 text-blue-500 mb-3" />
+            <p className="text-sm text-muted-foreground">Timeline increase</p>
+            <p className="text-2xl font-bold mt-1">{time.increase || 0} days</p>
+            <p className="text-xs text-muted-foreground mt-2">
+              Total work required: {effort.increase || time.increase || 0} days
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleSave = async () => {
     if (!scenarioName.trim()) {
@@ -288,8 +330,8 @@ export default function Results() {
             bg: "bg-blue-500/10",
           },
           {
-            label: "Effort Increase",
-            value: `+${effort.increase || 0} days of work`,
+            label: "Total work required",
+            value: `${effort.increase || 0} days`,
             pct: `+${effort.percentage || 0}%`,
             icon: Users,
             color: "text-purple-500",
@@ -482,7 +524,7 @@ export default function Results() {
                 cx="50%"
                 cy="50%"
                 outerRadius={90}
-                label={({ name, value }) => `${value}pd`}
+                label={({ name, value }) => `${value} days of work`}
               >
                 {effortPieData.map((_, i) => (
                   <Cell key={i} fill={CHART_COLORS[i]} />
@@ -490,7 +532,7 @@ export default function Results() {
               </Pie>
               <Tooltip
                 contentStyle={tooltipStyle}
-                formatter={(v) => [`${v} person-days`, ""]}
+                formatter={(v) => [`${v} days`, ""]}
               />
               <Legend />
             </PieChart>
@@ -498,9 +540,9 @@ export default function Results() {
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-3 text-center">
               {[
-                ["Original", effort.original, "pd"],
-                ["New Total", effort.new, "pd"],
-                ["Increase", effort.increase, "pd"],
+                ["Original", effort.original, "days of work"],
+                ["New Total", effort.new, "days of work"],
+                ["Increase", effort.increase, "days of work"],
               ].map(([l, v, u]) => (
                 <div key={l as string} className="rounded-xl bg-accent/50 p-3">
                   <div className="text-xs text-muted-foreground">{l}</div>
@@ -520,7 +562,7 @@ export default function Results() {
               >
                 <div className="flex justify-between text-sm mb-1">
                   <span>{label}</span>
-                  <span className="font-bold">{val} pd</span>
+                  <span className="font-bold">{val} days of work</span>
                 </div>
                 <div className="text-xs text-muted-foreground">{note}</div>
               </div>

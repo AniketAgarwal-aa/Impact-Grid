@@ -1,7 +1,7 @@
 import type { ImpactResult } from "@/types";
 
 export function calculateImpacts(project: unknown, change: unknown): ImpactResult {
-  const complexityMap: Record<string, number> = { low: 1, medium: 2, high: 3 };
+  const complexityMap: Record<string, number> = { low: 1, medium: 2, high: 3, very_high: 4 };
   const changeTypeMap: Record<string, number> = {
     addition: 1.3,
     modification: 1.0,

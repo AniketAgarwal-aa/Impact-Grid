@@ -22,7 +22,7 @@ export interface ChangeRequest {
   description: string;
   changeType: "addition" | "modification" | "removal";
   priority: "low" | "medium" | "high";
-  complexity: "low" | "medium" | "high";
+  complexity: "low" | "medium" | "high" | "very_high";
   affectedModules: string[];
 }
 

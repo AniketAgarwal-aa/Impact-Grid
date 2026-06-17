@@ -21,8 +21,8 @@ export default function Projects() {
     name: "",
     description: "",
     team_size: 5,
-    cost_per_day: 5000,
-    initial_duration: 30,
+    total_budget: 500000,
+    timeline_days: 30,
     stage: "mid",
     currency: "INR",
     priority: "medium",
@@ -51,8 +51,8 @@ export default function Projects() {
         name: "",
         description: "",
         team_size: 5,
-        cost_per_day: 5000,
-        initial_duration: 30,
+        total_budget: 500000,
+        timeline_days: 30,
         stage: "mid",
         currency: "INR",
         priority: "medium",
@@ -141,8 +141,8 @@ export default function Projects() {
                   <div className="text-muted-foreground">Team</div>
                 </div>
                 <div className="rounded-lg bg-accent/50 p-2">
-                  <div className="font-semibold">{p.initial_duration}d</div>
-                  <div className="text-muted-foreground">Duration</div>
+                  <div className="font-semibold">{p.timeline_days || p.initial_duration}d</div>
+                  <div className="text-muted-foreground">Timeline</div>
                 </div>
                 <div className="rounded-lg bg-accent/50 p-2">
                   <div className="font-semibold">{p.requirements_count}</div>
@@ -151,7 +151,7 @@ export default function Projects() {
               </div>
               <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
                 <span className="capitalize">{p.stage} stage</span>
-                <span>{format(convert(p.cost_per_day, p.currency))}/day</span>
+                <span>{format(convert(p.total_budget || p.budget || 0, p.currency))} budget</span>
               </div>
               <button
                 onClick={(e) => {
@@ -219,26 +219,26 @@ export default function Projects() {
                 </div>
                 <div>
                   <label className="text-sm font-medium block mb-1">
-                    Cost/Day
+                    Total Budget
                   </label>
                   <input
                     type="number"
-                    value={form.cost_per_day}
+                    value={form.total_budget}
                     onChange={(e) =>
-                      setForm({ ...form, cost_per_day: +e.target.value })
+                      setForm({ ...form, total_budget: +e.target.value })
                     }
                     className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary outline-none"
                   />
                 </div>
                 <div>
                   <label className="text-sm font-medium block mb-1">
-                    Duration (days)
+                    Timeline (days)
                   </label>
                   <input
                     type="number"
-                    value={form.initial_duration}
+                    value={form.timeline_days}
                     onChange={(e) =>
-                      setForm({ ...form, initial_duration: +e.target.value })
+                      setForm({ ...form, timeline_days: +e.target.value })
                     }
                     className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary outline-none"
                   />

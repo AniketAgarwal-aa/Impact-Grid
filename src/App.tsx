@@ -68,6 +68,7 @@ export default function App() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/verify" element={<VerifyEmail />} />
 
           {/* ── AUTHENTICATED LAYOUT ─────────────────── */}
           <Route

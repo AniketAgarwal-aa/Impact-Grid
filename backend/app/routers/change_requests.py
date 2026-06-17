@@ -149,6 +149,33 @@ async def approve_change_request(
     return {"message": "Approved"}
 
 
+@router.post("/{cr_id}/overrule")
+async def overrule_change_request(
+    cr_id: int,
+    data: ApprovalRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Admin can overrule any PM approval/rejection decision."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can overrule decisions")
+    cr = db.query(ChangeRequest).filter(ChangeRequest.id == cr_id).first()
+    if not cr:
+        raise HTTPException(404, "Not found")
+    action = (data.comment or "approve").lower()
+    if "reject" in action:
+        cr.status = "rejected"
+        cr.rejection_reason = data.comment
+    else:
+        cr.status = "approved"
+        cr.approval_comment = data.comment
+    cr.approved_by = current_user.id
+    cr.approval_date = datetime.utcnow()
+    db.commit()
+    log_audit(db, current_user.id, "OVERRULE", "change_request", cr_id)
+    return {"message": f"Decision overruled — status set to {cr.status}"}
+
+
 @router.post("/{cr_id}/reject")
 async def reject_change_request(
     cr_id: int,

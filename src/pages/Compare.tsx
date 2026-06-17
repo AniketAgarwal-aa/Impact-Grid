@@ -166,7 +166,7 @@ export default function Compare() {
                           convert(s.cost.increase, s.currency),
                         ),
                         "Time Increase": `${s.time.increase} days`,
-                        "Effort Increase": `${s.effort.increase} pd`,
+                        "Effort Increase": `${s.effort.increase} days of work`,
                         "Risk Level": <StatusBadge status={s.risk.level} />,
                         "Risk Score": `${s.risk.score}/100`,
                       };

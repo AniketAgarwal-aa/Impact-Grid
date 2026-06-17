@@ -17,6 +17,7 @@ export interface AuthUser {
   department?: string;
   designation?: string;
   avatar_url?: string;
+  client_id?: string;
   is_verified: boolean;
   force_password_change?: boolean;
 }

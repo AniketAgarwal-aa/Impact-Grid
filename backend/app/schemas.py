@@ -110,12 +110,11 @@ class ProjectCreate(BaseModel):
     name: str = Field(min_length=2)
     description: Optional[str] = None
     team_size: int = Field(default=5, ge=1)
-    cost_per_day: float = Field(default=5000, ge=0)
-    initial_duration: int = Field(default=30, ge=1)
+    total_budget: float = Field(default=500000, ge=0)
+    timeline_days: int = Field(default=30, ge=1)
     stage: str = "mid"
     currency: str = "INR"
     priority: str = "medium"
-    budget: Optional[float] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
 
@@ -124,13 +123,17 @@ class ProjectUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     team_size: Optional[int] = None
-    cost_per_day: Optional[float] = None
-    initial_duration: Optional[int] = None
+    total_budget: Optional[float] = None
+    timeline_days: Optional[int] = None
     stage: Optional[str] = None
     currency: Optional[str] = None
     priority: Optional[str] = None
     status: Optional[str] = None
-    budget: Optional[float] = None
+
+
+class ProjectClientCreate(BaseModel):
+    email: EmailStr
+    full_name: str = Field(min_length=2)
 
 
 class ProjectMemberAdd(BaseModel):
@@ -169,7 +172,6 @@ class ChangeRequestCreate(BaseModel):
     requirement_id: int
     change_type: str
     priority: str = "medium"
-    complexity: str = "medium"
     affected_modules: List[str] = []
     description: str
     justification: Optional[str] = None
@@ -180,7 +182,6 @@ class ChangeRequestCreate(BaseModel):
 class ChangeRequestUpdate(BaseModel):
     change_type: Optional[str] = None
     priority: Optional[str] = None
-    complexity: Optional[str] = None
     affected_modules: Optional[List[str]] = None
     description: Optional[str] = None
     justification: Optional[str] = None
@@ -195,23 +196,17 @@ class ApprovalRequest(BaseModel):
 
 # ============ ANALYSIS ============
 class AnalysisRequest(BaseModel):
-    # Project context
     project_id: Optional[int] = None
     project_name: str = "New Project"
     project_description: Optional[str] = None
     team_size: int = Field(default=5, ge=1)
-    cost_per_day: float = Field(default=5000, ge=0)
-    initial_duration: int = Field(default=30, ge=1)
+    total_budget: float = Field(default=500000, ge=0)
+    timeline_days: int = Field(default=30, ge=1)
     stage: str = "mid"
     currency: str = "INR"
-
-    # Requirement context
     requirement_id: Optional[int] = None
-
-    # Change details
     change_type: str = "modification"
     change_priority: str = "medium"
-    change_complexity: str = "medium"
     affected_modules: List[str] = []
     change_description: Optional[str] = None
     justification: Optional[str] = None

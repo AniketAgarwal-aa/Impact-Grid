@@ -11,7 +11,13 @@ class ImpactCalculator:
     """v5.0 - Complete enterprise impact engine with detailed breakdowns"""
 
     # ============ RULE-BASED WEIGHTS ============
-    COMPLEXITY_WEIGHTS = {"low": 1, "medium": 2, "high": 3, "very_high": 4}
+    COMPLEXITY_WEIGHTS = {
+        "very_low": 0.5,
+        "low": 1,
+        "medium": 2,
+        "high": 3,
+        "very_high": 4,
+    }
     CHANGE_TYPE_WEIGHTS = {
         "addition": 1.3,
         "modification": 1.0,
@@ -180,8 +186,52 @@ class ImpactCalculator:
     }
 
     @classmethod
+    def auto_complexity(
+        cls,
+        change_type: str,
+        description: str,
+        affected_modules: List[str],
+        priority: str = "medium",
+    ) -> str:
+        """Rule-based complexity from change inputs (not manual)."""
+        desc = (description or "").lower()
+        modules = [m.lower() for m in (affected_modules or [])]
+        mod_count = len(modules)
+
+        typo_words = ("typo", "spelling", "label", "wording", "text fix", "rename")
+        if mod_count <= 1 and change_type in ("modification", "optimization"):
+            if any(w in desc for w in typo_words) or len(desc) < 40:
+                return "very_low"
+
+        if mod_count >= 5 or (
+            mod_count >= 3
+            and any(m in modules for m in ("security", "payment", "infrastructure", "database"))
+        ):
+            return "very_high"
+
+        if change_type in ("refactor", "addition") and mod_count >= 3:
+            return "high"
+        if any(m in modules for m in ("security", "payment", "database", "infrastructure")):
+            return "high"
+
+        if change_type == "optimization" or (mod_count <= 1 and change_type == "modification"):
+            return "low"
+
+        return "medium"
+
+    @classmethod
     def calculate(cls, project: Dict, change: Dict, currency: str = "INR") -> Dict:
         """Main entry point - pure rule-based calculation"""
+        if not change.get("complexity"):
+            change = {
+                **change,
+                "complexity": cls.auto_complexity(
+                    change.get("change_type", "modification"),
+                    change.get("description", ""),
+                    change.get("affected_modules", []),
+                    change.get("priority", "medium"),
+                ),
+            }
         base_score = cls._base_score(project, change)
         module_factor = cls._module_factor(change.get("affected_modules", []))
         impact_score = base_score * module_factor
@@ -195,6 +245,7 @@ class ImpactCalculator:
 
         return {
             "change_size": change_size,
+            "auto_complexity": change.get("complexity"),
             "confidence_score": confidence,
             "cost_impact": impacts["cost"],
             "time_impact": impacts["time"],
@@ -253,34 +304,27 @@ class ImpactCalculator:
         cls, project: Dict, change: Dict, multiplier: float, impact_score: float
     ) -> Dict:
         team_size = max(1, project.get("team_size", 5))
-        cost_per_day = float(project.get("cost_per_day", 5000))
-        initial_duration = max(1, project.get("initial_duration", 60))
-        current_cost = cost_per_day * initial_duration
+        total_budget = float(
+            project.get("total_budget")
+            or project.get("budget")
+            or (float(project.get("cost_per_day", 5000)) * max(1, project.get("timeline_days") or project.get("initial_duration", 60)))
+        )
+        timeline_days = max(1, project.get("timeline_days") or project.get("initial_duration", 60))
+        current_cost = total_budget
+        daily_rate = total_budget / timeline_days
 
         complexity_v = cls.COMPLEXITY_WEIGHTS.get(change.get("complexity", "medium"), 2)
         base_days = 8 * (complexity_v / 2)
-        # Calibrated so typical enterprise change requests land in ~10–20 extra days
-        # (previously *10 blew up durations vs baseline timelines).
         time_impact = max(
             1,
             round(base_days * (multiplier - 1) * (team_size / 5) * 2.0),
         )
 
-        daily_rate = cost_per_day
         cost_labor = time_impact * daily_rate
         cost_infra = cost_labor * 0.15
-        cost_third = cost_labor * 0.10 if change.get("affected_modules") else 0
+        cost_third = cost_labor * 0.10
         cost_contingency = cost_labor * (0.20 if impact_score > 2.5 else 0.10)
-        cost_training = cost_labor * 0.05 if impact_score > 2.0 else 0
-        cost_docs = cost_labor * 0.03
-        total_cost = (
-            cost_labor
-            + cost_infra
-            + cost_third
-            + cost_contingency
-            + cost_training
-            + cost_docs
-        )
+        total_cost = cost_labor + cost_infra + cost_third + cost_contingency
 
         effort_total = max(1, time_impact * team_size)
         effort_senior = int(effort_total * 0.30)
@@ -300,15 +344,13 @@ class ImpactCalculator:
                     "infrastructure": round(cost_infra, 2),
                     "third_party": round(cost_third, 2),
                     "contingency": round(cost_contingency, 2),
-                    "training": round(cost_training, 2),
-                    "documentation": round(cost_docs, 2),
                 },
             },
             "time": {
-                "original": initial_duration,
-                "new": initial_duration + time_impact,
+                "original": timeline_days,
+                "new": timeline_days + time_impact,
                 "increase": time_impact,
-                "percentage": round((time_impact / initial_duration * 100), 2),
+                "percentage": round((time_impact / timeline_days * 100), 2),
                 "breakdown": {
                     "development": int(time_impact * 0.50),
                     "testing": int(time_impact * 0.25),
@@ -318,13 +360,13 @@ class ImpactCalculator:
                 },
             },
             "effort": {
-                "original": initial_duration * team_size,
-                "new": (initial_duration + time_impact) * team_size,
+                "original": timeline_days * team_size,
+                "new": (timeline_days + time_impact) * team_size,
                 "increase": effort_total,
                 "percentage": round(
                     (
-                        (effort_total / (initial_duration * team_size) * 100)
-                        if initial_duration * team_size > 0
+                        (effort_total / (timeline_days * team_size) * 100)
+                        if timeline_days * team_size > 0
                         else 0
                     ),
                     2,

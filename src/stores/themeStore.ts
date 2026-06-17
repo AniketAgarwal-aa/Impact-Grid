@@ -12,11 +12,18 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
       | "dark"
       | "light"
       | null;
-    if (saved === "dark" || saved === "light") return saved;
-    const systemDark =
-      window.matchMedia &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches;
-    return systemDark ? "dark" : "light";
+    let initialTheme: "dark" | "light" = "light";
+    if (saved === "dark" || saved === "light") {
+      initialTheme = saved;
+    } else {
+      const systemDark =
+        window.matchMedia &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches;
+      initialTheme = systemDark ? "dark" : "light";
+    }
+    // Instantly apply theme on first load
+    document.documentElement.classList.toggle("dark", initialTheme === "dark");
+    return initialTheme;
   })(),
   toggleTheme: () => {
     const next = get().theme === "dark" ? "light" : "dark";

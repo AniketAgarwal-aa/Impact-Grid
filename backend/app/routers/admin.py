@@ -22,13 +22,21 @@ from ..models import (
     SystemSetting,
     User,
 )
+from ..constants import is_protected_admin, is_super_admin
 from ..schemas import AdminUserCreate, AdminUserUpdate, RoleUpdate, SettingUpdate
 from ..utils.audit import log_audit
 from ..utils.email import send_verification_email
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
-SUPER_ADMIN_EMAIL = "aniketagarwal359@gmail.com"
 
+
+def _assert_can_modify_role(actor: User, target: User, new_role: str | None = None) -> None:
+    """Super admin accounts cannot be modified or downgraded by anyone."""
+    if is_protected_admin(target.email):
+        raise HTTPException(
+            status_code=403,
+            detail="Super admin accounts cannot be modified or downgraded.",
+        )
 
 @router.get("/users")
 async def list_users(
@@ -68,6 +76,7 @@ async def list_users(
                 "designation": u.designation,
                 "is_active": u.is_active,
                 "is_verified": u.is_verified,
+                "client_id": u.client_id,
                 "last_login": u.last_login,
                 "created_at": u.created_at,
             }
@@ -88,10 +97,8 @@ async def create_user(
     existing = db.query(User).filter(User.email == data.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
-    if data.role == "admin" and current_user.email != SUPER_ADMIN_EMAIL:
-        raise HTTPException(
-            status_code=403, detail="Only super admin can create admin accounts"
-        )
+    if data.role == "admin" and is_protected_admin(data.email):
+        raise HTTPException(status_code=400, detail="Cannot create super admin accounts")
     verification_token = generate_verification_token()
     user = User(
         email=data.email,
@@ -137,21 +144,8 @@ async def update_user(
         raise HTTPException(status_code=404, detail="User not found")
     incoming = data.model_dump(exclude_unset=True)
 
-    # Role lock:
-    # - Only super admin can assign or remove the admin role.
-    # - Admins can freely move users between client <-> project_manager.
-    # - Nobody can change super admin's role.
     if "role" in incoming:
-        if user.email == SUPER_ADMIN_EMAIL:
-            raise HTTPException(status_code=403, detail="Cannot modify super admin role")
-        old_role = user.role
-        new_role = incoming["role"]
-        if old_role == "admin" or new_role == "admin":
-            if current_user.email != SUPER_ADMIN_EMAIL:
-                raise HTTPException(
-                    status_code=403,
-                    detail="Only super admin can assign or remove admin role",
-                )
+        _assert_can_modify_role(current_user, user, incoming.get("role"))
     old = {"role": user.role, "is_active": user.is_active}
     for k, v in incoming.items():
         setattr(user, k, v)
@@ -203,15 +197,7 @@ async def update_role(
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    if user.email == SUPER_ADMIN_EMAIL:
-        raise HTTPException(status_code=403, detail="Cannot modify super admin role")
-    # Only super admin can assign/remove the admin role.
-    if user.role == "admin" or data.role == "admin":
-        if current_user.email != SUPER_ADMIN_EMAIL:
-            raise HTTPException(
-                status_code=403,
-                detail="Only super admin can assign or remove admin role",
-            )
+    _assert_can_modify_role(current_user, user, data.role)
     old_role = user.role
     user.role = data.role
     user.updated_at = datetime.utcnow()

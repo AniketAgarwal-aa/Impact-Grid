@@ -68,7 +68,7 @@ def get_db():
 
 
 DEFAULT_SETTINGS = [
-    ("app.name", "ImpactSensei", "string", "Application name", "general"),
+    ("app.name", "Impact Grid", "string", "Application name", "general"),
     ("app.version", "5.0.0", "string", "Application version", "general"),
     ("app.tagline", "Master Your Project Changes", "string", "App tagline", "general"),
     (
@@ -81,7 +81,7 @@ DEFAULT_SETTINGS = [
     ("auth.max_login_attempts", "5", "number", "Max failed login attempts", "auth"),
     (
         "auth.require_email_verification",
-        "false",
+        "true",
         "boolean",
         "Require email verification on signup",
         "auth",
@@ -138,6 +138,24 @@ DEFAULT_SETTINGS = [
 ]
 
 
+def _ensure_user_columns() -> None:
+    """Add new user columns on existing SQLite/Postgres DBs."""
+    cols = [
+        ("users", "client_id", "VARCHAR(20)"),
+        ("users", "original_email", "VARCHAR(255)"),
+    ]
+    try:
+        with engine.begin() as conn:
+            for table, col, col_type in cols:
+                try:
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {col_type}"))
+                    print(f"[OK] Added {table}.{col}")
+                except Exception:
+                    pass
+    except Exception as e:
+        print(f"[migrate] user columns skip: {e}")
+
+
 def init_db():
     """Initialize database tables and default settings."""
     from .models import (
@@ -166,6 +184,7 @@ def init_db():
 
     Base.metadata.create_all(bind=engine)
     _widen_user_sessions_token_postgres()
+    _ensure_user_columns()
 
     db = SessionLocal()
     try:
@@ -177,6 +196,11 @@ def init_db():
                         key=key, value=value, type=type_, description=desc, category=cat
                     )
                 )
+            else:
+                # Force-update critical security settings so old DBs with wrong defaults get corrected
+                if key == "auth.require_email_verification" and existing.value != "true":
+                    existing.value = "true"
+                    print(f"[OK] Corrected {key} to 'true' (was '{existing.value}')")
 
         # Seed fallback exchange rates
         fallback_rates = [
@@ -203,9 +227,11 @@ def init_db():
         # Hardcoded Admin User
         from .auth import hash_password
 
+        from .constants import SUPER_ADMIN_EMAILS
+
         seeded_admins = [
-            ("aniketagarwal359@gmail.com", "Aniket Agarwal"),
-            ("navyagupta1820@gmail.com", "Navya Gupta"),
+            ("admin1@impactstudio.com", "Admin One"),
+            ("admin2@impactstudio.com", "Admin Two"),
         ]
 
         for admin_email, full_name in seeded_admins:
@@ -213,6 +239,7 @@ def init_db():
             if not existing_admin:
                 admin_user = User(
                     email=admin_email,
+                    original_email=admin_email,
                     password_hash=hash_password("password"),
                     full_name=full_name,
                     role="admin",
@@ -221,15 +248,29 @@ def init_db():
                 )
                 db.add(admin_user)
                 db.commit()
-                print(f"[OK] Seeded admin '{admin_email}' created (default password).")
+                print(f"[OK] Seeded super admin '{admin_email}' created (password: password).")
             else:
-                # Ensure seeded admins never drift to PM/client
-                if existing_admin.role != "admin" or not existing_admin.is_verified:
-                    existing_admin.role = "admin"
-                    existing_admin.is_verified = True
-                    existing_admin.is_active = True
-                    db.commit()
-                    print(f"[OK] Seeded admin '{admin_email}' reconciled to role=admin.")
+                existing_admin.role = "admin"
+                existing_admin.is_verified = True
+                existing_admin.is_active = True
+                existing_admin.original_email = admin_email
+                db.commit()
+                print(f"[OK] Super admin '{admin_email}' reconciled.")
+
+        # Migrate legacy admin emails if present
+        legacy_map = {
+            "aniketagarwal359@gmail.com": "admin1@impactstudio.com",
+            "navyagupta1820@gmail.com": "admin2@impactstudio.com",
+        }
+        for old_email, new_email in legacy_map.items():
+            legacy = db.query(User).filter(User.email == old_email).first()
+            if legacy and not db.query(User).filter(User.email == new_email).first():
+                legacy.email = new_email
+                legacy.original_email = new_email
+                legacy.role = "admin"
+                legacy.is_verified = True
+                db.commit()
+                print(f"[OK] Migrated legacy admin {old_email} -> {new_email}")
 
         db.commit()
         print("[OK] Database initialized successfully (v5.1)")

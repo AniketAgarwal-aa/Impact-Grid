@@ -53,6 +53,8 @@ class User(Base):
         Integer, ForeignKey("companies.id", ondelete="SET NULL"), nullable=True
     )
     email = Column(String(255), unique=True, nullable=False, index=True)
+    original_email = Column(String(255))
+    client_id = Column(String(20), unique=True, index=True)
     password_hash = Column(String(255), nullable=False)
     full_name = Column(String(255), nullable=False)
     avatar_url = Column(String(500))
@@ -137,6 +139,21 @@ class Project(Base):
         Index("idx_projects_company", "company_id"),
         Index("idx_projects_owner", "owner_id"),
     )
+
+
+class ProjectClient(Base):
+    __tablename__ = "project_clients"
+    id = Column(Integer, primary_key=True)
+    project_id = Column(
+        Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
+    )
+    client_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    linked_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    linked_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (UniqueConstraint("project_id", "client_id"),)
 
 
 class ProjectAssignment(Base):

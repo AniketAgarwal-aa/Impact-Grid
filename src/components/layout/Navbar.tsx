@@ -1,5 +1,5 @@
 /**
- * ImpactSensei v5.0 - Navbar
+ * Impact Grid - Navbar
  */
 import { useAuthStore } from "@/stores/authStore";
 import { useCurrencyStore, CurrencyCode } from "@/stores/currencyStore";
@@ -8,15 +8,25 @@ import { useNotificationStore } from "@/stores/notificationStore";
 import { Bell, Sun, Moon, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { api } from "@/services/api";
 
-const CURRENCIES: CurrencyCode[] = ["INR", "USD", "EUR", "GBP"];
+const CURRENCIES: CurrencyCode[] = ["INR", "USD"];
 
 export default function Navbar() {
   const { user } = useAuthStore();
-  const { currency, setCurrency, format, convert, formatCompact, symbol } =
-    useCurrencyStore();
+  const { currency, setCurrency, symbol } = useCurrencyStore();
   const { theme, toggleTheme } = useThemeStore();
+  const { items, setItems } = useNotificationStore();
   const [showCurrency, setShowCurrency] = useState(false);
+
+  useEffect(() => {
+    api
+      .getNotifications()
+      .then((data) => setItems(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, [setItems]);
+
+  const unreadCount = items.filter((n) => !n.is_read).length;
 
   const roleLabel =
     user?.role === "admin"
@@ -33,24 +43,21 @@ export default function Navbar() {
         : "bg-blue-500/10 text-blue-500";
 
   return (
-    <header className="relative z-50 flex h-16 items-center justify-between border-b border-border bg-card/50 backdrop-blur-sm px-6 gap-4">
-      {/* Left — page title area (filled by breadcrumbs if needed) */}
+    <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-border bg-card/95 backdrop-blur-sm px-6 gap-4">
       <div className="flex items-center gap-3">
         <span
           className={`rounded-full px-2.5 py-1 text-xs font-semibold ${roleBadgeClass}`}
         >
           {roleLabel}
         </span>
-        {user?.company_id && (
+        {user?.client_id && (
           <span className="text-xs text-muted-foreground hidden sm:block">
-            Company #{user.company_id}
+            {user.client_id}
           </span>
         )}
       </div>
 
-      {/* Right controls */}
-      <div className="flex items-center gap-2">
-        {/* Currency picker */}
+      <div className="relative z-50 flex items-center gap-2">
         <div className="relative">
           <button
             onClick={() => setShowCurrency(!showCurrency)}
@@ -65,7 +72,7 @@ export default function Navbar() {
                 className="fixed inset-0 z-40"
                 onClick={() => setShowCurrency(false)}
               />
-              <div className="absolute right-0 top-full z-[60] mt-1 w-28 rounded-xl border border-border bg-card shadow-xl overflow-hidden">
+              <div className="absolute right-0 top-full z-50 mt-1 w-28 rounded-xl border border-border bg-card shadow-xl overflow-hidden">
                 {CURRENCIES.map((c) => (
                   <button
                     key={c}
@@ -75,13 +82,7 @@ export default function Navbar() {
                     }}
                     className={`w-full px-4 py-2.5 text-left text-sm hover:bg-accent transition-colors ${currency === c ? "text-primary font-semibold bg-primary/5" : ""}`}
                   >
-                    {c === "INR"
-                      ? "₹ INR"
-                      : c === "USD"
-                        ? "$ USD"
-                        : c === "EUR"
-                          ? "€ EUR"
-                          : "£ GBP"}
+                    {c === "INR" ? "₹ INR" : "$ USD"}
                   </button>
                 ))}
               </div>
@@ -89,10 +90,10 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Theme toggle */}
         <button
           onClick={toggleTheme}
           className="rounded-xl border border-border p-2 hover:bg-accent transition-colors"
+          aria-label="Toggle theme"
         >
           {theme === "dark" ? (
             <Sun className="h-4 w-4" />
@@ -101,15 +102,18 @@ export default function Navbar() {
           )}
         </button>
 
-        {/* Notifications */}
         <Link
           to="/notifications"
           className="relative rounded-xl border border-border p-2 hover:bg-accent transition-colors"
         >
           <Bell className="h-4 w-4" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
         </Link>
 
-        {/* User avatar */}
         <Link
           to="/profile"
           className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 hover:bg-accent transition-colors"

@@ -12,18 +12,44 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..dependencies import get_current_user, require_pm_or_admin
+from ..auth import generate_verification_token, hash_password
 from ..models import (
     ChangeRequest,
     ImpactAnalysis,
     Project,
     ProjectAssignment,
+    ProjectClient,
     Requirement,
     User,
 )
-from ..schemas import ProjectCreate, ProjectMemberAdd, ProjectUpdate
+from ..schemas import ProjectClientCreate, ProjectCreate, ProjectMemberAdd, ProjectUpdate
+from ..utils.email import send_verification_email, _send
 from ..utils.audit import log_audit
 
 router = APIRouter(prefix="/api/projects", tags=["Projects"])
+
+
+def _next_client_id(db: Session) -> str:
+    last = (
+        db.query(User)
+        .filter(User.client_id.isnot(None))
+        .order_by(User.id.desc())
+        .first()
+    )
+    if last and last.client_id and last.client_id.startswith("CLT-"):
+        try:
+            num = int(last.client_id.split("-")[1]) + 1
+        except ValueError:
+            num = 1001
+    else:
+        num = 1001
+    return f"CLT-{num}"
+
+
+def _project_budget_fields(p):
+    total_budget = float(p.budget or 0) or float(p.cost_per_day or 0) * max(1, p.initial_duration or 30)
+    timeline_days = max(1, p.initial_duration or 30)
+    return total_budget, timeline_days
 
 
 def _project_list_entry(p, db, current_user_currency="INR"):
@@ -38,13 +64,16 @@ def _project_list_entry(p, db, current_user_currency="INR"):
         .scalar()
     )
     owner = db.query(User).filter(User.id == p.owner_id).first()
+    total_budget, timeline_days = _project_budget_fields(p)
     return {
         "id": p.id,
         "name": p.name,
         "description": p.description,
         "team_size": p.team_size,
-        "cost_per_day": float(p.cost_per_day or 0),
-        "initial_duration": p.initial_duration,
+        "total_budget": total_budget,
+        "timeline_days": timeline_days,
+        "cost_per_day": round(total_budget / timeline_days, 2),
+        "initial_duration": timeline_days,
         "stage": p.stage,
         "currency": p.currency,
         "status": p.status,
@@ -52,7 +81,7 @@ def _project_list_entry(p, db, current_user_currency="INR"):
         "owner_id": p.owner_id,
         "owner_name": owner.full_name if owner else None,
         "company_id": p.company_id,
-        "budget": float(p.budget) if p.budget else None,
+        "budget": total_budget,
         "start_date": str(p.start_date) if p.start_date else None,
         "end_date": str(p.end_date) if p.end_date else None,
         "requirements_count": req_count,
@@ -100,15 +129,15 @@ async def create_project(
         name=data.name,
         description=data.description,
         team_size=data.team_size,
-        cost_per_day=data.cost_per_day,
-        initial_duration=data.initial_duration,
+        budget=data.total_budget,
+        cost_per_day=round(data.total_budget / max(1, data.timeline_days), 2),
+        initial_duration=data.timeline_days,
         stage=data.stage,
         currency=data.currency,
         priority=data.priority,
         owner_id=current_user.id,
         start_date=data.start_date,
         end_date=data.end_date,
-        budget=data.budget,
         company_id=current_user.company_id,
     )
     db.add(project)
@@ -181,6 +210,7 @@ async def get_project(
                     "user_id": u.id,
                     "email": u.email,
                     "full_name": u.full_name,
+                    "client_id": u.client_id,
                     "role": a.role,
                     "joined_at": a.assigned_at,
                 }
@@ -223,7 +253,15 @@ async def update_project(
     ):
         raise HTTPException(status_code=403, detail="Access denied")
     for k, v in data.model_dump(exclude_unset=True).items():
-        setattr(project, k, v)
+        if k == "total_budget":
+            project.budget = v
+            project.cost_per_day = round(v / max(1, project.initial_duration or 1), 2)
+        elif k == "timeline_days":
+            project.initial_duration = v
+            budget = float(project.budget or 0) or float(project.cost_per_day or 0) * max(1, v)
+            project.cost_per_day = round(budget / max(1, v), 2)
+        else:
+            setattr(project, k, v)
     project.updated_at = datetime.utcnow()
     db.commit()
     log_audit(db, current_user.id, "UPDATE", "project", project_id)
@@ -337,6 +375,95 @@ async def remove_member(
     db.delete(a)
     db.commit()
     return {"message": "Member removed"}
+
+
+@router.post("/{project_id}/clients")
+async def link_client(
+    project_id: int,
+    data: ProjectClientCreate,
+    current_user: User = Depends(require_pm_or_admin),
+    db: Session = Depends(get_db),
+):
+    """PM creates client account and links to project."""
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    import secrets
+    import string
+
+    verification_token = generate_verification_token()
+    user = db.query(User).filter(User.email == data.email).first()
+    temp_password: str | None = None
+    if not user:
+        temp_password = "".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(12))
+        user = User(
+            email=data.email,
+            original_email=data.email,
+            password_hash=hash_password(temp_password),
+            full_name=data.full_name,
+            role="client",
+            company_id=current_user.company_id,
+            client_id=_next_client_id(db),
+            is_verified=False,
+            is_active=True,
+            force_password_change=True,
+            email_verification_token=verification_token,
+        )
+        db.add(user)
+        db.flush()
+        send_verification_email(data.email, verification_token)
+    elif user.role != "client":
+        raise HTTPException(status_code=400, detail="Email belongs to a non-client user")
+    elif not user.client_id:
+        user.client_id = _next_client_id(db)
+
+    existing = (
+        db.query(ProjectClient)
+        .filter(ProjectClient.project_id == project_id, ProjectClient.client_id == user.id)
+        .first()
+    )
+    if not existing:
+        db.add(
+            ProjectClient(
+                project_id=project_id,
+                client_id=user.id,
+                linked_by=current_user.id,
+            )
+        )
+    existing_assign = (
+        db.query(ProjectAssignment)
+        .filter(ProjectAssignment.project_id == project_id, ProjectAssignment.user_id == user.id)
+        .first()
+    )
+    if not existing_assign:
+        db.add(
+            ProjectAssignment(
+                project_id=project_id,
+                user_id=user.id,
+                role="client",
+                assigned_by=current_user.id,
+            )
+        )
+    db.commit()
+
+    body = (
+        f"<h2>Your client account is ready</h2>"
+        f"<p><strong>Client ID:</strong> {user.client_id}</p>"
+        f"<p><strong>Project:</strong> {project.name}</p>"
+    )
+    if temp_password:
+        body += f"<p><strong>Temporary password:</strong> {temp_password}</p>"
+        body += "<p>Verify your email with the 6-digit OTP, then log in and change your password.</p>"
+    else:
+        body += "<p>You have been linked to this project. Log in to view it.</p>"
+    _send(data.email, f"Welcome to {project.name} — Impact Grid", body)
+    log_audit(db, current_user.id, "CREATE", "project_client", project_id, details=data.email)
+    return {
+        "message": "Client linked to project",
+        "client_id": user.client_id,
+        "user_id": user.id,
+    }
 
 
 @router.get("/{project_id}/analytics")

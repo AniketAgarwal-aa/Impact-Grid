@@ -35,15 +35,16 @@ export default function Signup() {
       return;
     }
     try {
-      await register({
+      const result = await register({
         email: form.email,
         password: form.password,
         full_name: form.full_name,
         department: form.department || undefined,
         designation: form.designation || undefined,
       });
+      // Always require email verification
       toast.success(
-        "Registration successful! Check your email for the verification code.",
+        "Account created! A 6-digit verification code has been sent to your email.",
       );
       setStep("verify");
     } catch (err: unknown) {

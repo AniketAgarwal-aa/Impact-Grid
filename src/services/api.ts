@@ -111,7 +111,6 @@ export const api = {
   verifyEmail: (token: string) => post<unknown>("/auth/verify-email", { token }),
   resendVerification: (email: string) =>
     post<unknown>("/auth/resend-verification", { email }),
-  googleAuth: (token: string) => post<unknown>("/auth/google", { token }),
 
   // ── PUBLIC ────────────────────────────────────────────
   getPublicSettings: () => get<unknown>("/settings/public"),
@@ -170,6 +169,8 @@ export const api = {
     post<unknown>(`/projects/${id}/members`, data),
   removeProjectMember: (projectId: number, userId: number) =>
     del<unknown>(`/projects/${projectId}/members/${userId}`),
+  linkProjectClient: (projectId: number, data: unknown) =>
+    post<unknown>(`/projects/${projectId}/clients`, data),
   getProjectAnalytics: (id: number) => get<unknown>(`/projects/${id}/analytics`),
 
   // ── REQUIREMENTS ─────────────────────────────────────
@@ -198,8 +199,6 @@ export const api = {
   // ── ANALYSIS ─────────────────────────────────────────
   runAnalysis: (data: unknown) => post<unknown>("/analyze", data),
   getAnalysis: (id: number) => get<unknown>(`/analyses/${id}`),
-  exportAnalysis: (id: number, format: string) =>
-    request<unknown>(`/analyses/${id}/export?format=${format}`),
 
   // ── SCENARIOS ─────────────────────────────────────────
   getScenarios: (params?: unknown) => {
@@ -223,6 +222,7 @@ export const api = {
   // ── NOTIFICATIONS ─────────────────────────────────────
   getNotifications: () => get<any[]>("/notifications"),
   markNotificationRead: (id: number) => put<unknown>(`/notifications/${id}/read`),
+  markNotificationUnread: (id: number) => put<unknown>(`/notifications/${id}/unread`),
   markAllRead: () => put<unknown>("/notifications/read-all"),
   deleteNotification: (id: number) => del<unknown>(`/notifications/${id}`),
 

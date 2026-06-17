@@ -3,7 +3,7 @@
  * Role-based redirect: admin → /admin | pm → /pm/dashboard | client → /dashboard
  * Supports inline 2FA challenge when server returns requires_2fa: true
  */
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import { toast } from "@/components/common/Toast";
@@ -52,29 +52,6 @@ export default function Login() {
   const location = useLocation();
   const preferredRole = getPreferredRole(location.pathname);
 
-  useEffect(() => {
-    const hash = window.location.hash.startsWith("#")
-      ? window.location.hash.slice(1)
-      : "";
-    const params = new URLSearchParams(hash);
-    const idToken = params.get("id_token");
-    if (!idToken) return;
-
-    api
-      .googleAuth(idToken)
-      .then((data) => {
-        setToken(data.access_token, data.refresh_token, data.user);
-        toast.success("Signed in with Google successfully.");
-        navigate(getRoleRedirect(data.user.role), { replace: true });
-      })
-      .catch((err: unknown) => {
-        toast.error(err?.message || "Google sign-in failed.");
-      })
-      .finally(() => {
-        window.history.replaceState(null, document.title, window.location.pathname);
-      });
-  }, [navigate, setToken]);
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
@@ -96,13 +73,13 @@ export default function Login() {
       navigate(getRoleRedirect(data.user.role));
     } catch (err: unknown) {
       const msg = err?.message || "Login failed";
-      // If verification is required, show inline OTP verification UI.
+      // If email is not verified, show inline OTP verification UI
       if (
         /verify|verification|not verified/i.test(msg) ||
         /Email not verified/i.test(msg)
       ) {
         setVerifyMode(true);
-        toast.error("Email verification required. Enter the 6-digit code.");
+        toast.warning("Please verify your email first. Enter the 6-digit code sent to your inbox.");
       } else {
         toast.error(msg);
       }
@@ -164,28 +141,10 @@ export default function Login() {
     try {
       await api.forgotPassword(forgotEmail);
       setForgotSent(true);
+      toast.info("If the email exists, a 6-digit reset code was sent (check console if SMTP not configured).");
     } catch (err: unknown) {
-      toast.error(err.message);
+      toast.error((err as Error).message);
     }
-  };
-
-  const handleGoogleSignIn = () => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
-    if (!clientId) {
-      toast.error("Google Sign-In is not configured yet.");
-      return;
-    }
-    const redirectUri = `${window.location.origin}/login`;
-    const scope = encodeURIComponent("openid email profile");
-    const oauthUrl =
-      `https://accounts.google.com/o/oauth2/v2/auth` +
-      `?client_id=${encodeURIComponent(clientId)}` +
-      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-      `&response_type=id_token` +
-      `&scope=${scope}` +
-      `&nonce=${encodeURIComponent(crypto.randomUUID())}` +
-      `&prompt=select_account`;
-    window.open(oauthUrl, "google_oauth", "width=520,height=640");
   };
 
   return (
@@ -440,14 +399,6 @@ export default function Login() {
                     ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                     : <><LogIn className="h-4 w-4" /> Sign In</>
                   }
-                </button>
-                <button
-                  id="google-signin"
-                  type="button"
-                  onClick={handleGoogleSignIn}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-border py-3 text-sm font-semibold hover:bg-accent transition-colors"
-                >
-                  Sign in with Google
                 </button>
               </form>
 

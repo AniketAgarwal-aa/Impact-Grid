@@ -6,6 +6,7 @@ import { toast } from "@/components/common/Toast";
 import { PageLoader } from "@/components/common/LoadingSpinner";
 import { useCurrencyStore } from "@/stores/currencyStore";
 import { Plus, Trash2 } from "lucide-react";
+import DiscussionThread from "@/components/discussions/DiscussionThread";
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -211,6 +212,7 @@ export default function ProjectDetail() {
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
                   <option value="high">High</option>
+                  <option value="very_high">Very High</option>
                 </select>
                 <select
                   value={reqForm.priority}
@@ -244,6 +246,12 @@ export default function ProjectDetail() {
           </div>
         </div>
       )}
+
+      <DiscussionThread
+        entityType="project"
+        entityId={parseInt(id!)}
+        title="Project Discussion"
+      />
     </div>
   );
 }

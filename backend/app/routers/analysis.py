@@ -28,7 +28,9 @@ async def analyze_impact(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Run v5.0 impact analysis with full breakdowns"""
+    """Run impact analysis — clients only may submit change requests."""
+    if current_user.role not in ("client", "admin"):
+        raise HTTPException(status_code=403, detail="Only clients can submit change requests")
     try:
         # Resolve or create project
         project = (
@@ -41,8 +43,9 @@ async def analyze_impact(
                 name=data.project_name,
                 description=data.project_description,
                 team_size=data.team_size,
-                cost_per_day=data.cost_per_day,
-                initial_duration=data.initial_duration,
+                budget=data.total_budget,
+                cost_per_day=round(data.total_budget / max(1, data.timeline_days), 2),
+                initial_duration=data.timeline_days,
                 stage=data.stage,
                 currency=data.currency,
                 owner_id=current_user.id,
@@ -50,6 +53,13 @@ async def analyze_impact(
             )
             db.add(project)
             db.flush()
+
+        auto_complexity = ImpactCalculator.auto_complexity(
+            data.change_type,
+            data.change_description or "",
+            data.affected_modules,
+            data.change_priority,
+        )
 
         # Resolve or create requirement
         requirement = (
@@ -61,7 +71,7 @@ async def analyze_impact(
             requirement = Requirement(
                 project_id=project.id,
                 title=(data.change_description or "Change Request")[:200],
-                complexity=data.change_complexity,
+                complexity=auto_complexity,
                 priority=data.change_priority,
                 created_by=current_user.id,
             )
@@ -73,7 +83,7 @@ async def analyze_impact(
             requirement_id=requirement.id,
             change_type=data.change_type,
             priority=data.change_priority,
-            complexity=data.change_complexity,
+            complexity=auto_complexity,
             affected_modules=json.dumps(data.affected_modules),
             description=data.change_description or "",
             justification=data.justification,
@@ -88,14 +98,15 @@ async def analyze_impact(
         # Run v5.0 calculation
         project_ctx = {
             "team_size": data.team_size,
-            "cost_per_day": data.cost_per_day,
-            "initial_duration": data.initial_duration,
+            "total_budget": float(data.total_budget),
+            "timeline_days": data.timeline_days,
+            "initial_duration": data.timeline_days,
             "stage": data.stage,
         }
         change_ctx = {
             "change_type": data.change_type,
             "priority": data.change_priority,
-            "complexity": data.change_complexity,
+            "description": data.change_description or "",
             "affected_modules": data.affected_modules,
         }
         results = ImpactCalculator.calculate(project_ctx, change_ctx, data.currency)

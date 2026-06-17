@@ -28,7 +28,7 @@ export default function Landing() {
     {
       icon: BarChart3,
       title: "Visual Reports",
-      desc: "Beautiful charts and exportable reports in PDF, CSV, and JSON formats.",
+      desc: "Beautiful charts and exportable PDF reports.",
     },
     {
       icon: GitCompare,
@@ -50,7 +50,7 @@ export default function Landing() {
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600">
             <Zap className="h-5 w-5 text-white" />
           </div>
-          <span className="text-xl font-bold gradient-text">ImpactSensei</span>
+          <span className="text-xl font-bold gradient-text">Impact Grid</span>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -149,7 +149,7 @@ export default function Landing() {
       <section className="border-t border-border/50 px-6 py-20 bg-card/50">
         <div className="mx-auto max-w-6xl">
           <h2 className="text-center text-3xl font-bold mb-4">
-            Why ImpactSensei?
+            Why Impact Grid?
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
             Enterprise-grade tools that give your team the confidence to make
@@ -192,7 +192,7 @@ export default function Landing() {
       {/* Footer */}
       <footer className="border-t border-border/50 px-6 py-8 text-center text-sm text-muted-foreground">
         <p>
-          © 2024 ImpactSensei v3.0.0 — Built for enterprise project management
+          © 2026 Impact Grid — Enterprise Change Impact Simulator
         </p>
       </footer>
     </div>

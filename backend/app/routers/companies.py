@@ -14,12 +14,11 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..dependencies import require_admin
 from ..models import Company, Project, User
+from ..constants import is_protected_admin
 from ..schemas import CompanyCreate, CompanyUpdate
 from ..utils.audit import log_audit
 
 router = APIRouter(prefix="/api/admin/companies", tags=["Companies"])
-SUPER_ADMIN_EMAIL = "aniketagarwal359@gmail.com"
-
 
 def slugify(name: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
@@ -206,8 +205,8 @@ async def assign_pm(
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    if user.email == SUPER_ADMIN_EMAIL:
-        raise HTTPException(status_code=403, detail="Cannot modify super admin role")
+    if is_protected_admin(user.email):
+        raise HTTPException(status_code=403, detail="Cannot modify super admin")
     if user.role == "admin":
         raise HTTPException(status_code=403, detail="Cannot change an admin into PM")
     user.company_id = company_id

@@ -9,15 +9,19 @@ SMTP_HOST = os.getenv("SMTP_HOST", "")
 SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
 SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
-FROM_EMAIL = os.getenv("FROM_EMAIL", "noreply@impactsensei.com")
+FROM_EMAIL = os.getenv("FROM_EMAIL", "noreply@impactgrid.com")
 APP_URL = os.getenv("APP_URL", "http://localhost:5173")
+APP_NAME = "Impact Grid"
 
 
 def _send(to_email: str, subject: str, html_body: str):
     if not SMTP_USER or not SMTP_PASSWORD:
-        print(f"[Email] SMTP not configured. Would send to {to_email}: {subject}")
-        # Print body so OTP / links are visible in Render logs during production debugging.
+        print("\n" + "=" * 60)
+        print(f"📧 [EMAIL SIMULATION] To: {to_email}")
+        print(f"Subject: {subject}")
+        print("-" * 60)
         print(html_body)
+        print("=" * 60 + "\n")
         return
     try:
         msg = MIMEMultipart()
@@ -37,7 +41,7 @@ def send_verification_email(email: str, token: str):
     url = f"{APP_URL}/verify-email?token={token}"
     _send(
         email,
-        "Verify Your ImpactSensei Account",
+        f"Verify Your {APP_NAME} Account",
         f"<h2>Verify Your Email</h2>"
         f"<p><strong>Your verification code:</strong> {token}</p>"
         f"<p>Or verify via link: <a href='{url}'>Verify email</a></p>"
@@ -46,18 +50,19 @@ def send_verification_email(email: str, token: str):
 
 
 def send_password_reset_email(email: str, token: str):
-    url = f"{APP_URL}/reset-password?token={token}"
     _send(
         email,
-        "Reset Your ImpactSensei Password",
-        f"<h2>Reset Password</h2><p><a href='{url}'>Click here to reset</a></p><p>Expires in 1 hour.</p>",
+        f"Reset Your {APP_NAME} Password",
+        f"<h2>Password Reset</h2>"
+        f"<p><strong>Your reset code:</strong> {token}</p>"
+        f"<p>Enter this code on the reset password page. Expires in 10 minutes.</p>",
     )
 
 
 def send_welcome_email(email: str, name: str):
     _send(
         email,
-        "Welcome to ImpactSensei!",
+        f"Welcome to {APP_NAME}!",
         f"<h2>Welcome, {name}!</h2><p>Your account is verified. <a href='{APP_URL}/login'>Login now</a>.</p>",
     )
 

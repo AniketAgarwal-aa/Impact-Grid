@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..dependencies import get_current_user
 from ..models import Comment, CommentReaction, User
+from ..utils.mentions import notify_mentions
 from ..schemas import CommentCreate, CommentUpdate, ReactionCreate
 
 router = APIRouter(prefix="/api/comments", tags=["Comments"])
@@ -69,6 +70,15 @@ async def add_comment(
     db.add(c)
     db.commit()
     db.refresh(c)
+    link = f"/projects/{data.entity_id}" if data.entity_type == "project" else f"/results/{data.entity_id}"
+    notify_mentions(
+        db,
+        content=data.content,
+        author=current_user,
+        entity_type=data.entity_type,
+        entity_id=data.entity_id,
+        link=link,
+    )
     return {"id": c.id, "message": "Comment added"}
 
 
