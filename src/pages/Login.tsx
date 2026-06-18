@@ -29,6 +29,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [tfaCode, setTfaCode] = useState("");
   const [forgotMode, setForgotMode] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotSent, setForgotSent] = useState(false);
@@ -40,7 +41,6 @@ export default function Login() {
 
   // 2FA challenge
   const [tfaMode, setTfaMode] = useState(false);
-  const [tfaCode, setTfaCode] = useState("");
   const [pendingTokens, setPendingTokens] = useState<{
     access_token: string;
     refresh_token: string;
@@ -58,15 +58,7 @@ export default function Login() {
     clearError();
     setSubmitting(true);
     try {
-      const data = await api.login(email, password, rememberMe);
-
-      // Server signals 2FA is required
-      if (data.requires_2fa) {
-        setPendingTokens(data);
-        setTfaMode(true);
-        return;
-      }
-
+      const data = await api.login(email, password, rememberMe, tfaCode || undefined);
       setToken(data.access_token, data.refresh_token, data.user);
       localStorage.setItem("remember_me", rememberMe ? "true" : "false");
       toast.success(`Welcome back, ${data.user.full_name?.split(" ")[0]}! 👋`);
@@ -158,7 +150,7 @@ export default function Login() {
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm shadow-xl border border-white/20">
               <Zap className="h-8 w-8" />
             </div>
-            <span className="text-3xl font-extrabold tracking-tight">ImpactSensei</span>
+            <span className="text-3xl font-extrabold tracking-tight">Impact Grid</span>
           </div>
           <h2 className="text-5xl font-extrabold mb-4 leading-tight">
             Predict.<br />Analyze.<br />Decide.

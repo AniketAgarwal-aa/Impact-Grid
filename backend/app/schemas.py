@@ -14,7 +14,6 @@ class UserRegister(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8)
     full_name: str = Field(min_length=2)
-    department: Optional[str] = None
     designation: Optional[str] = None
 
 
@@ -22,6 +21,7 @@ class UserLogin(BaseModel):
     email: EmailStr
     password: str
     remember_me: bool = False
+    tfa_code: Optional[str] = None
 
 
 class RefreshTokenRequest(BaseModel):

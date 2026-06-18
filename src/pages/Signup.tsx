@@ -178,10 +178,6 @@ export default function Signup() {
                 <option value="">Select your role</option>
                 <option value="Project Manager">Project Manager</option>
                 <option value="Developer">Developer</option>
-                <option value="Designer">Designer</option>
-                <option value="Business Analyst">Business Analyst</option>
-                <option value="QA Engineer">QA Engineer</option>
-                <option value="Other">Other</option>
               </select>
             </div>
             <div>

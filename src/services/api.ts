@@ -96,8 +96,8 @@ export const api = {
   delete: <T = unknown>(url: string) => del<T>(url),
 
   // ── AUTH ──────────────────────────────────────────────
-  login: (email: string, password: string, remember_me = false) =>
-    post<unknown>("/auth/login", { email, password, remember_me }),
+  login: (email: string, password: string, remember_me = false, tfa_code?: string) =>
+    post<unknown>("/auth/login", { email, password, remember_me, tfa_code }),
   register: (data: unknown) => post<unknown>("/auth/register", data),
   logout: () => post<unknown>("/auth/logout"),
   refreshToken: (refresh_token: string) =>

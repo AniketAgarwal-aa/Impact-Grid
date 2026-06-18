@@ -32,7 +32,9 @@ export default function SystemSettings() {
     }
   };
 
-  const categories = [...new Set(settings.map((s) => s.category))];
+  const categories = [...new Set(settings.map((s) => s.category))].filter(
+    (cat) => ["general", "auth", "currency", "email"].includes(cat)
+  );
 
   return (
     <div className="space-y-6">

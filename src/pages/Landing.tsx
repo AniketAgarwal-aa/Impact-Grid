@@ -84,12 +84,6 @@ export default function Landing() {
         <div className="absolute top-20 left-1/4 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
         <div className="absolute top-40 right-1/4 h-60 w-60 rounded-full bg-purple-500/10 blur-3xl" />
         <div className="relative mx-auto max-w-4xl">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm">
-            <Zap className="h-3.5 w-3.5 text-primary" />
-            <span className="text-primary font-medium">
-              Enterprise-Grade Impact Prediction
-            </span>
-          </div>
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight">
             Master Your Project
             <span className="block gradient-text mt-2">Changes</span>

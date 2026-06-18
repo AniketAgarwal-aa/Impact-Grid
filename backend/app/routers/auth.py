@@ -154,11 +154,10 @@ async def register(data: UserRegister, request: Request, db: Session = Depends(g
         email=data.email,
         password_hash=hash_password(data.password),
         full_name=data.full_name,
-        department=data.department,
         designation=data.designation,
         email_verification_token=verification_token,
         is_verified=False,  # Always require verification for self-registered users
-        role="client",  # v5.0: default is client
+        role="unknown",  # Role is unknown until admin verifies
     )
     _set_verification_meta(user)
     db.add(user)
@@ -169,7 +168,12 @@ async def register(data: UserRegister, request: Request, db: Session = Depends(g
     send_verification_email(data.email, verification_token)
 
     log_audit(
-        db, user.id, "REGISTER", "user", user.id, details=f"New client: {data.email}"
+        db,
+        user.id,
+        "REGISTER",
+        "user",
+        user.id,
+        details=f"New user: {data.email} (role: unknown, pending admin verification)",
     )
 
     return {
@@ -231,11 +235,28 @@ async def login(data: LoginRequest, request: Request, db: Session = Depends(get_
     except Exception:
         tfa_enabled = False
 
+    # If 2FA is enabled, require TOTP code for login
+    if tfa_enabled:
+        if not data.tfa_code:
+            raise HTTPException(
+                status_code=400, detail="2FA code required. Please enter your TOTP code."
+            )
+        # Verify TOTP code
+        tfa_data = prefs.get("tfa", {})
+        secret = tfa_data.get("secret")
+        if secret:
+            import pyotp
+            totp = pyotp.TOTP(secret)
+            if not totp.verify(data.tfa_code, valid_window=1):
+                raise HTTPException(status_code=400, detail="Invalid 2FA code")
+        else:
+            raise HTTPException(status_code=400, detail="2FA not properly configured")
+
     token_data = {
         "sub": str(user.id),
         "email": user.email,
         "role": user.role,
-        "tfa_verified": not tfa_enabled,
+        "tfa_verified": True,
     }
     access_token = create_access_token(token_data)
     refresh_token = create_refresh_token(token_data)

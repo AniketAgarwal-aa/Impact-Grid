@@ -50,12 +50,13 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# Bearer tokens in headers (not cookies) — allow any origin so every Vercel preview works.
+# CORS configuration - allow specific frontend origin
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://impact-sensei.vercel.app")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
+    allow_origins=[FRONTEND_URL, "http://localhost:5173", "http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
 )
 

@@ -43,7 +43,7 @@ def send_verification_email(email: str, token: str):
         email,
         f"Verify Your {APP_NAME} Account",
         f"<h2>Verify Your Email</h2>"
-        f"<p><strong>Your verification code:</strong> {token}</p>"
+        f"<p><strong>Your verification code:</strong> <span style='font-size: 24px; font-weight: bold; color: #007bff;'>{token}</span></p>"
         f"<p>Or verify via link: <a href='{url}'>Verify email</a></p>"
         f"<p>Expires in 15 minutes.</p>",
     )
