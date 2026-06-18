@@ -104,8 +104,8 @@ export const api = {
   put: <T = unknown>(url: string, body?: unknown) => put<T>(url, body),
 
   // ── AUTH ──────────────────────────────────────────────
-  login: (email: string, password: string, remember_me = false, tfa_code?: string) =>
-    post<unknown>("/auth/login", { email, password, remember_me, tfa_code }),
+  login: (email: string, password: string | undefined, remember_me = false, tfa_code?: string, login_role?: string, tfa_mode = false) =>
+    post<unknown>("/auth/login", { email, password, remember_me, tfa_code, login_role, tfa_mode }),
   register: (data: unknown) => post<unknown>("/auth/register", data),
   logout: () => post<unknown>("/auth/logout"),
   refreshToken: (refresh_token: string) =>

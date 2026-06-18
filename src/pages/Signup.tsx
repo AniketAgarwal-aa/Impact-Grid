@@ -13,7 +13,7 @@ export default function Signup() {
     email: "",
     password: "",
     confirmPassword: "",
-    full_name: "",
+    full_name: "Akash Gupta",
     designation: "",
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -175,9 +175,9 @@ export default function Signup() {
                 }
                 className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
               >
-                <option value="">Select your role</option>
+                <option value="">Select your designation</option>
+                <option value="Client">Client</option>
                 <option value="Project Manager">Project Manager</option>
-                <option value="Developer">Developer</option>
               </select>
             </div>
             <div>

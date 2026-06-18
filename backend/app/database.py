@@ -27,7 +27,17 @@ elif DATABASE_URL.startswith("postgresql"):
     if "localhost" not in DATABASE_URL and "127.0.0.1" not in DATABASE_URL:
         connect_args = {"sslmode": "require"}
 
-engine = create_engine(DATABASE_URL, connect_args=connect_args)
+try:
+    engine = create_engine(DATABASE_URL, connect_args=connect_args)
+    # Test the connection immediately
+    with engine.connect() as conn:
+        pass
+except Exception as e:
+    print(f"[WARN] Database connection failed for {DATABASE_URL}: {e}")
+    print("[INFO] Falling back to local SQLite database: sqlite:///./impact_sensei.db")
+    DATABASE_URL = "sqlite:///./impact_sensei.db"
+    connect_args = {"check_same_thread": False}
+    engine = create_engine(DATABASE_URL, connect_args=connect_args)
 
 # Enable WAL mode for SQLite (better concurrent reads)
 if DATABASE_URL.startswith("sqlite"):
@@ -246,6 +256,67 @@ def init_db():
                 legacy.is_verified = True
                 db.commit()
                 print(f"[OK] Migrated legacy admin {old_email} -> {new_email}")
+
+        # Seed pre-built templates
+        from .models import Template
+        import json
+        prebuilt_templates = [
+            {
+                "name": "Standard Software Requirement",
+                "description": "Standard template for new requirements",
+                "category": "requirement",
+                "content": {
+                    "title": "New Requirement",
+                    "description": "A detailed description of the requirement.",
+                    "priority": "medium",
+                    "effort_hours": 16,
+                },
+                "variables": ["title", "description", "effort_hours"],
+                "is_public": True,
+            },
+            {
+                "name": "API Route Change Request",
+                "description": "Template for submitting changes to an existing API route",
+                "category": "change_request",
+                "content": {
+                    "title": "Change API endpoint {endpoint_name}",
+                    "reason": "Optimize database queries and response payload",
+                    "impact": "Requires frontend updates and database migrations",
+                    "risk_level": "medium",
+                },
+                "variables": ["endpoint_name"],
+                "is_public": True,
+            },
+            {
+                "name": "Standard Web Project",
+                "description": "Standard starting template for new projects",
+                "category": "project",
+                "content": {
+                    "name": "Web Project",
+                    "description": "A standard web application project setup.",
+                    "status": "planning",
+                    "budget": 50000,
+                },
+                "variables": ["name", "description", "budget"],
+                "is_public": True,
+            }
+        ]
+
+        for pt in prebuilt_templates:
+            existing = db.query(Template).filter(Template.name == pt["name"]).first()
+            if not existing:
+                db.add(
+                    Template(
+                        name=pt["name"],
+                        description=pt["description"],
+                        category=pt["category"],
+                        content=json.dumps(pt["content"]),
+                        variables=json.dumps(pt["variables"]),
+                        is_public=pt["is_public"],
+                        company_id=None,
+                        created_by=None,
+                    )
+                )
 
         db.commit()
         print("[OK] Database initialized successfully (v5.1)")

@@ -185,11 +185,15 @@ async def register(data: UserRegister, request: Request, db: Session = Depends(g
 
 
 from pydantic import BaseModel
+from typing import Optional as _Optional
 
 class LoginRequest(BaseModel):
     email: str
-    password: str
+    password: _Optional[str] = None  # Not required when tfa_mode=True
     remember_me: bool = False
+    tfa_mode: bool = False           # True = login with TOTP code only (no password)
+    tfa_code: _Optional[str] = None  # TOTP code from authenticator app
+    login_role: _Optional[str] = None  # Expected role from login tab (admin/project_manager/client)
 
 @router.post("/login")
 async def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
@@ -208,10 +212,23 @@ async def login(data: LoginRequest, request: Request, db: Session = Depends(get_
         )
 
     user = db.query(User).filter(User.email == data.email).first()
-    if not user or not verify_password(data.password, user.password_hash):
-        recent_attempts.append(now)
-        _login_attempt_cache[attempt_key] = recent_attempts
-        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    # ── Authentication: password OR 2FA-only mode ──
+    if data.tfa_mode:
+        # 2FA-only mode: user skips password, must provide a valid TOTP code
+        if not user:
+            recent_attempts.append(now)
+            _login_attempt_cache[attempt_key] = recent_attempts
+            raise HTTPException(status_code=401, detail="Invalid email or 2FA code")
+    else:
+        # Normal password-based auth
+        if not data.password:
+            raise HTTPException(status_code=400, detail="Password is required")
+        if not user or not verify_password(data.password, user.password_hash):
+            recent_attempts.append(now)
+            _login_attempt_cache[attempt_key] = recent_attempts
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+
     if not user.is_active:
         raise HTTPException(
             status_code=403,
@@ -229,28 +246,48 @@ async def login(data: LoginRequest, request: Request, db: Session = Depends(get_
             status_code=403, detail="Email not verified. Please check your inbox and enter the verification code."
         )
 
+    # ── Role-tab enforcement ──
+    # Ensure the user is logging in via the correct role tab
+    if data.login_role and data.login_role != "auto":
+        if user.role != data.login_role:
+            raise HTTPException(
+                status_code=403,
+                detail=f"This account does not have the '{data.login_role.replace('_', ' ')}' role. Please use the correct login tab.",
+            )
+
     try:
         prefs = json.loads(user.preferences or "{}")
         tfa_enabled = bool((prefs.get("tfa") or {}).get("enabled"))
     except Exception:
         tfa_enabled = False
+        prefs = {}
 
-    # If 2FA is enabled, require TOTP code for login
-    if tfa_enabled:
+    # ── 2FA verification ──
+    tfa_data = prefs.get("tfa", {})
+    secret = tfa_data.get("secret")
+
+    if data.tfa_mode:
+        # Must have 2FA set up and provide a valid code
+        if not tfa_enabled or not secret:
+            raise HTTPException(status_code=400, detail="2FA is not set up for this account")
+        import pyotp
+        totp = pyotp.TOTP(secret)
+        if not data.tfa_code or not totp.verify(data.tfa_code, valid_window=1):
+            recent_attempts.append(now)
+            _login_attempt_cache[attempt_key] = recent_attempts
+            raise HTTPException(status_code=401, detail="Invalid email or 2FA code")
+    elif tfa_enabled:
+        # Password login with 2FA enabled: also require the TOTP code
         if not data.tfa_code:
             raise HTTPException(
-                status_code=400, detail="2FA code required. Please enter your TOTP code."
+                status_code=400, detail="2FA code required. Please enter your TOTP code from your authenticator app."
             )
-        # Verify TOTP code
-        tfa_data = prefs.get("tfa", {})
-        secret = tfa_data.get("secret")
-        if secret:
-            import pyotp
-            totp = pyotp.TOTP(secret)
-            if not totp.verify(data.tfa_code, valid_window=1):
-                raise HTTPException(status_code=400, detail="Invalid 2FA code")
-        else:
-            raise HTTPException(status_code=400, detail="2FA not properly configured")
+        if not secret:
+            raise HTTPException(status_code=400, detail="2FA not properly configured. Contact your administrator.")
+        import pyotp
+        totp = pyotp.TOTP(secret)
+        if not totp.verify(data.tfa_code, valid_window=1):
+            raise HTTPException(status_code=400, detail="Invalid 2FA code")
 
     token_data = {
         "sub": str(user.id),
