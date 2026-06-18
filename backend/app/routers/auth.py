@@ -213,6 +213,12 @@ async def login(data: LoginRequest, request: Request, db: Session = Depends(get_
             status_code=403,
             detail="Account is deactivated. Contact your administrator.",
         )
+    # Block users with unknown/null roles - require admin verification
+    if not user.role or user.role == "unknown":
+        raise HTTPException(
+            status_code=403,
+            detail="Account pending admin verification. Please contact your administrator.",
+        )
     # Always require email verification before allowing login.
     if not user.is_verified:
         raise HTTPException(

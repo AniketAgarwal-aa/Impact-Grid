@@ -1,5 +1,5 @@
 /**
- * ImpactSensei - Landing Page
+ * Impact Grid - Landing Page
  * Public hero page with features and CTA
  */
 import { Link } from "react-router-dom";

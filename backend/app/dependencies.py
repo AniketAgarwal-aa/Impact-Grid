@@ -1,5 +1,5 @@
 """
-ImpactSensei v5.0 - FastAPI Dependencies
+Impact Grid - FastAPI Dependencies
 Role: admin | project_manager | client
 """
 
@@ -59,7 +59,17 @@ def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer),
     db: Session = Depends(get_db),
 ) -> User:
+    from datetime import datetime, timedelta
+    from .auth import SESSION_TIMEOUT_MINUTES
+    
     user, payload = _resolve_user_from_token(credentials, db)
+    
+    # Check session timeout
+    if user.last_login:
+        session_duration = datetime.utcnow() - user.last_login
+        if session_duration > timedelta(minutes=SESSION_TIMEOUT_MINUTES):
+            raise HTTPException(status_code=401, detail="Session expired. Please login again.")
+    
     # If email verification is enabled, block unverified users for ALL protected endpoints.
     setting = (
         db.query(SystemSetting)
@@ -71,6 +81,11 @@ def get_current_user(
         raise HTTPException(status_code=403, detail="Email verification required")
     if _is_tfa_enabled(user) and payload.get("tfa_verified") is not True:
         raise HTTPException(status_code=401, detail="2FA verification required")
+    
+    # Update last activity timestamp
+    user.last_login = datetime.utcnow()
+    db.commit()
+    
     return user
 
 

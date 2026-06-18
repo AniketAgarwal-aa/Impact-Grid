@@ -1,5 +1,5 @@
 """
-ImpactSensei v5.1 - FastAPI Application
+Impact Grid - FastAPI Application
 Three-tier: Admin / Project Manager / Client
 New: WebSockets, 2FA, Analytics, Webhooks
 """

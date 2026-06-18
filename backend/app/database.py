@@ -69,8 +69,6 @@ def get_db():
 
 DEFAULT_SETTINGS = [
     ("app.name", "Impact Grid", "string", "Application name", "general"),
-    ("app.version", "5.0.0", "string", "Application version", "general"),
-    ("app.tagline", "Master Your Project Changes", "string", "App tagline", "general"),
     (
         "auth.session_timeout_minutes",
         "30",
@@ -95,42 +93,19 @@ DEFAULT_SETTINGS = [
         "currency",
     ),
     (
-        "currency.exchange_rate_update_hours",
-        "6",
-        "number",
-        "Hours between rate updates",
-        "currency",
-    ),
-    (
         "exchange_rate_api_url",
         "https://api.exchangerate-api.com/v4/latest/USD",
         "string",
         "Live exchange rate API URL",
         "currency",
     ),
-    (
-        "notifications.email_enabled",
-        "false",
-        "boolean",
-        "Enable email notifications",
-        "notifications",
-    ),
-    (
-        "analysis.default_confidence",
-        "85",
-        "number",
-        "Default confidence score",
-        "analysis",
-    ),
-    ("analysis.calculation_version", "5.0", "string", "Calculator version", "analysis"),
-    ("export.max_rows_csv", "10000", "number", "Max CSV export rows", "export"),
     ("smtp_host", "smtp.gmail.com", "string", "SMTP server hostname", "email"),
     ("smtp_port", "587", "number", "SMTP port", "email"),
     ("smtp_user", "", "string", "SMTP username", "email"),
     ("smtp_password", "", "string", "SMTP password (encrypted)", "email"),
     (
         "from_email",
-        "noreply@impactsensei.com",
+        "noreply@impactgrid.com",
         "string",
         "Sender email address",
         "email",

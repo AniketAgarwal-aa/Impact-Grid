@@ -1,5 +1,5 @@
 /**
- * ImpactSensei - Signup Page
+ * Impact Grid - Signup Page
  */
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -14,7 +14,6 @@ export default function Signup() {
     password: "",
     confirmPassword: "",
     full_name: "",
-    department: "",
     designation: "",
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -39,7 +38,6 @@ export default function Signup() {
         email: form.email,
         password: form.password,
         full_name: form.full_name,
-        department: form.department || undefined,
         designation: form.designation || undefined,
       });
       // Always require email verification
@@ -149,7 +147,7 @@ export default function Signup() {
                 }
                 required
                 className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
-                placeholder="John Doe"
+                placeholder="Akash Gupta"
               />
             </div>
             <div>
@@ -166,35 +164,25 @@ export default function Signup() {
                 placeholder="your@email.com"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-sm font-medium mb-1.5 block">
-                  Department
-                </label>
-                <input
-                  type="text"
-                  value={form.department}
-                  onChange={(e) =>
-                    setForm({ ...form, department: e.target.value })
-                  }
-                  className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
-                  placeholder="Engineering"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-1.5 block">
-                  Designation
-                </label>
-                <input
-                  type="text"
-                  value={form.designation}
-                  onChange={(e) =>
-                    setForm({ ...form, designation: e.target.value })
-                  }
-                  className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
-                  placeholder="Developer"
-                />
-              </div>
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">
+                Designation
+              </label>
+              <select
+                value={form.designation}
+                onChange={(e) =>
+                  setForm({ ...form, designation: e.target.value })
+                }
+                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+              >
+                <option value="">Select your role</option>
+                <option value="Project Manager">Project Manager</option>
+                <option value="Developer">Developer</option>
+                <option value="Designer">Designer</option>
+                <option value="Business Analyst">Business Analyst</option>
+                <option value="QA Engineer">QA Engineer</option>
+                <option value="Other">Other</option>
+              </select>
             </div>
             <div>
               <label className="text-sm font-medium mb-1.5 block">
