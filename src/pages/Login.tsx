@@ -164,7 +164,7 @@ export default function Login() {
               ["33 DB Tables", "Complete data model"],
               ["80+ Endpoints", "Full REST API"],
               ["Real-time WS", "Live collaboration"],
-              ["AI Analytics", "Risk forecasting"],
+              ["Risk Analysis", "Impact forecasting"],
             ].map(([title, sub]) => (
               <div key={title} className="rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 p-4">
                 <div className="font-bold text-sm">{title}</div>

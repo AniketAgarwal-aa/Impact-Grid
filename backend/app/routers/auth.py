@@ -173,7 +173,7 @@ async def register(data: UserRegister, request: Request, db: Session = Depends(g
         "REGISTER",
         "user",
         user.id,
-        details=f"New user: {data.email} (role: unknown, pending admin verification)",
+        details=f"New user: {data.email} (role: client, pending email verification)",
     )
 
     return {
@@ -261,12 +261,15 @@ async def login(data: LoginRequest, request: Request, db: Session = Depends(get_
     access_token = create_access_token(token_data)
     refresh_token = create_refresh_token(token_data)
 
+    # Invalidate all other sessions for this user (single device login)
+    db.query(UserSession).filter(UserSession.user_id == user.id).delete()
+    
     user.last_login = datetime.utcnow()
     db.commit()
     _login_attempt_cache.pop(attempt_key, None)
 
     ip = get_client_ip(request)
-    session_duration = timedelta(days=30) if data.remember_me else timedelta(days=7)
+    session_duration = timedelta(days=30) if data.remember_me else timedelta(days=1)
     session = UserSession(
         user_id=user.id,
         token=refresh_token,

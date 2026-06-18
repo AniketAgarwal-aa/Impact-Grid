@@ -85,15 +85,23 @@ const put = <T>(url: string, body?: unknown) =>
     body: body ? JSON.stringify(body) : undefined,
   });
 const del = <T>(url: string) => request<T>(url, { method: "DELETE" });
+const patchFn = <T>(url: string, body?: unknown) =>
+  request<T>(url, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined,
+  });
 
 // Expose raw helpers for new pages that need arbitrary endpoints
-export { get as apiGet, post as apiPost, del as apiDelete };
+export { get as apiGet, post as apiPost, del as apiDelete, patchFn as apiPatch, put as apiPut };
 
 export const api = {
   // Generic helpers (used by AdvancedAnalytics, Integrations, etc.)
   get: <T = unknown>(url: string) => get<T>(url),
   post: <T = unknown>(url: string, body?: unknown) => post<T>(url, body),
   delete: <T = unknown>(url: string) => del<T>(url),
+  patch: <T = unknown>(url: string, body?: unknown) => patchFn<T>(url, body),
+  put: <T = unknown>(url: string, body?: unknown) => put<T>(url, body),
 
   // ── AUTH ──────────────────────────────────────────────
   login: (email: string, password: string, remember_me = false, tfa_code?: string) =>
@@ -128,6 +136,8 @@ export const api = {
   deleteAdminUser: (id: number) => del<unknown>(`/admin/users/${id}`),
   updateUserRole: (id: number, role: string) =>
     put<unknown>(`/admin/users/${id}/role`, { role }),
+  verifyUser: (id: number, role: string) =>
+    patchFn<unknown>(`/admin/users/${id}/verify`, { role }),
 
   // ── ADMIN — COMPANIES ─────────────────────────────────
   getCompanies: (params?: unknown) => {

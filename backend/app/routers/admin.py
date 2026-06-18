@@ -38,6 +38,35 @@ def _assert_can_modify_role(actor: User, target: User, new_role: str | None = No
             detail="Super admin accounts cannot be modified or downgraded.",
         )
 
+@router.patch("/users/{user_id}/verify")
+async def verify_user(
+    user_id: int,
+    role: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Admin verifies a user and assigns their role."""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user.is_verified = True
+    user.role = role
+    user.last_login = datetime.utcnow()
+    db.commit()
+    
+    log_audit(
+        db,
+        current_user.id,
+        "VERIFY_USER",
+        "user",
+        user_id,
+        details=f"Admin verified user {user.email} and assigned role: {role}",
+    )
+    
+    return {"message": f"User verified and assigned role: {role}"}
+
+
 @router.get("/users")
 async def list_users(
     page: int = Query(1, ge=1),
