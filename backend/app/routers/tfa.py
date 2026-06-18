@@ -25,7 +25,7 @@ from ..utils.audit import log_audit
 
 router = APIRouter(prefix="/api/auth/2fa", tags=["2FA"])
 
-APP_NAME = "ImpactSensei"
+APP_NAME = "Impact Grid"
 BACKUP_CODE_COUNT = 8
 
 

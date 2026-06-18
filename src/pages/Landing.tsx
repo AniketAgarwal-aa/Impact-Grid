@@ -87,7 +87,7 @@ export default function Landing() {
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm">
             <Zap className="h-3.5 w-3.5 text-primary" />
             <span className="text-primary font-medium">
-              v3.0 — Enterprise-Grade Impact Prediction
+              Enterprise-Grade Impact Prediction
             </span>
           </div>
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight">

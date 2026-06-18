@@ -43,7 +43,7 @@ from .routers import (
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="ImpactSensei API",
+    title="Impact Grid API",
     description="Enterprise Impact Prediction Platform — v5.1 (WebSockets · 2FA · Analytics · Webhooks)",
     version="5.1.0",
     docs_url="/docs",

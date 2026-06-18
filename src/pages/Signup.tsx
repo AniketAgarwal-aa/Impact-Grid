@@ -116,7 +116,7 @@ export default function Signup() {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
               <Zap className="h-7 w-7" />
             </div>
-            <span className="text-3xl font-bold">ImpactSensei</span>
+            <span className="text-3xl font-bold">Impact Grid</span>
           </div>
           <h2 className="text-4xl font-bold mb-4">Get Started</h2>
           <p className="text-lg text-white/80">

@@ -1,5 +1,5 @@
 """
-ImpactSensei v5.0 - Live Currency Service
+Impact Grid - Live Currency Service
 Fetches rates from exchangerate-api.com with DB fallback
 """
 

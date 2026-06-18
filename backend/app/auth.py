@@ -1,5 +1,5 @@
 """
-ImpactSensei v5.0 — JWT Auth helpers
+Impact Grid - JWT Auth helpers
 """
 
 import os

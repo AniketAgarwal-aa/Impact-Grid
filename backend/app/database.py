@@ -1,5 +1,5 @@
 """
-ImpactSensei v5.0 - Database Configuration
+Impact Grid - Database Configuration
 SQLAlchemy 2.0 with auto-initialization
 """
 

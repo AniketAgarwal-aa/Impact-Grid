@@ -1,4 +1,4 @@
-"""Templates router"""
+"""Impact Grid - Templates router"""
 
 import json
 from datetime import datetime

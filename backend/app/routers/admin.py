@@ -1,5 +1,5 @@
 """
-ImpactSensei v5.0 - Admin Router
+Impact Grid - Admin Router
 User mgmt + Company mgmt + Analytics + Audit + Settings
 """
 
