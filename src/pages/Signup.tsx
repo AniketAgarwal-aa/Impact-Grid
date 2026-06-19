@@ -13,7 +13,7 @@ export default function Signup() {
     email: "",
     password: "",
     confirmPassword: "",
-    full_name: "Akash Gupta",
+    full_name: "",
     designation: "",
   });
   const [showPassword, setShowPassword] = useState(false);

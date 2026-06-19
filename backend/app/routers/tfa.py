@@ -150,21 +150,23 @@ async def verify_and_enable_2fa(
     backup_codes = _generate_backup_codes()
     # Store hashed backup codes
     tfa["enabled"] = True
-    tfa["backup_codes"] = backup_codes  # In production: hash these
+    access_token, access_jti = create_access_token(
+        {
+            "sub": str(current_user.id),
+            "email": current_user.email,
+            "role": current_user.role,
+            "tfa_verified": True,
+        }
+    )
+    
+    tfa["active_jti"] = access_jti # Save in prefs to keep session valid
     _save_2fa_data(current_user, tfa, db)
     log_audit(db, current_user.id, "ENABLE_2FA", "user", current_user.id)
 
     return {
         "success": True,
         "backup_codes": backup_codes,
-        "access_token": create_access_token(
-            {
-                "sub": str(current_user.id),
-                "email": current_user.email,
-                "role": current_user.role,
-                "tfa_verified": True,
-            }
-        ),
+        "access_token": access_token,
         "refresh_token": create_refresh_token(
             {
                 "sub": str(current_user.id),

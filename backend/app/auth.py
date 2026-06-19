@@ -37,14 +37,16 @@ def verify_password(plain: str, hashed: str) -> bool:
         return False
 
 
-def create_access_token(data: dict) -> str:
+def create_access_token(data: dict) -> tuple[str, str]:
+    jti = secrets.token_urlsafe(12)
     payload = {
         **data,
         "type": "access",
-        "jti": secrets.token_urlsafe(12),
+        "jti": jti,
         "exp": datetime.utcnow() + timedelta(minutes=ACCESS_EXPIRE_MINUTES),
     }
-    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM), jti
+
 
 
 def create_refresh_token(data: dict) -> str:

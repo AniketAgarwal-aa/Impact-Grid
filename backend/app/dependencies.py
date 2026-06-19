@@ -44,6 +44,18 @@ def _resolve_user_from_token(
     user = db.query(User).filter(User.id == int(user_id)).first()
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="User inactive or not found")
+
+    try:
+        prefs = json.loads(user.preferences or "{}")
+        active_jti = prefs.get("active_jti")
+        if active_jti and payload.get("jti") and active_jti != payload.get("jti"):
+            raise HTTPException(
+                status_code=401, 
+                detail="Session invalid. You have logged in from another device or tab."
+            )
+    except Exception:
+        pass
+
     return user, payload
 
 

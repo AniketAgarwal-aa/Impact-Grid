@@ -294,12 +294,15 @@ async def login(data: LoginRequest, request: Request, db: Session = Depends(get_
         "email": user.email,
         "role": user.role,
         "tfa_verified": True,
-    }
-    access_token = create_access_token(token_data)
+    access_token, access_jti = create_access_token(token_data)
     refresh_token = create_refresh_token(token_data)
 
     # Invalidate all other sessions for this user (single device login)
     db.query(UserSession).filter(UserSession.user_id == user.id).delete()
+    
+    # Store active_jti in user preferences to invalidate older access tokens
+    prefs["active_jti"] = access_jti
+    user.preferences = json.dumps(prefs)
     
     user.last_login = datetime.utcnow()
     db.commit()

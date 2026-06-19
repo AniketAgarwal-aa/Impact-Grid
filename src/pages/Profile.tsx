@@ -18,6 +18,9 @@ export default function Profile() {
     confirm: "",
   });
   const [saving, setSaving] = useState(false);
+  const [tfaSetup, setTfaSetup] = useState<{secret: string, qr_data_url: string} | null>(null);
+  const [tfaCode, setTfaCode] = useState("");
+
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -211,16 +214,56 @@ export default function Profile() {
                 View Backup Codes
               </button>
             </div>
+          ) : tfaSetup ? (
+            <div className="mt-4 p-6 border border-border rounded-xl bg-background space-y-4">
+              <h3 className="font-semibold text-lg text-center">Scan QR Code</h3>
+              <p className="text-sm text-muted-foreground text-center">
+                Scan this QR code with Google Authenticator or a similar app.
+              </p>
+              <div className="flex justify-center">
+                <img src={tfaSetup.qr_data_url} alt="2FA QR Code" className="w-48 h-48 rounded-lg" />
+              </div>
+              <p className="text-xs text-center text-muted-foreground break-all">
+                Manual secret: {tfaSetup.secret}
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Enter 6-digit code"
+                  value={tfaCode}
+                  onChange={(e) => setTfaCode(e.target.value)}
+                  className="flex-1 rounded-xl border border-border bg-background px-4 py-2 text-sm focus:border-primary outline-none text-center tracking-widest"
+                  maxLength={6}
+                />
+                <button
+                  onClick={async () => {
+                    if (tfaCode.length !== 6) return;
+                    try {
+                      await api.verify2FA(tfaCode);
+                      toast.success("2FA Enabled successfully!");
+                      window.location.href = '/backup-codes';
+                    } catch(e: unknown) {
+                      toast.error(e.message || "Failed to verify code");
+                    }
+                  }}
+                  className="px-6 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:bg-primary/90"
+                >
+                  Verify
+                </button>
+              </div>
+              <button
+                onClick={() => { setTfaSetup(null); setTfaCode(""); }}
+                className="w-full mt-2 py-2 text-sm text-muted-foreground hover:text-foreground"
+              >
+                Cancel
+              </button>
+            </div>
           ) : (
             <button 
               onClick={async () => {
                 try {
                   const data = await api.setup2FA();
-                  const code = prompt(`Scan this secret in your authenticator app: ${data.secret}\n\nThen enter the 6-digit code here to verify:`);
-                  if(!code) return;
-                  await api.verify2FA(code);
-                  toast.success("2FA Enabled successfully!");
-                  window.location.href = '/backup-codes';
+                  setTfaSetup(data);
                 } catch(e: unknown) { toast.error(e.message) }
               }}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:bg-primary/90"

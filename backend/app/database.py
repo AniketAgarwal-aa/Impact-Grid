@@ -318,6 +318,90 @@ def init_db():
                     )
                 )
 
+        # Seed Sample PM and Client
+        pm_email = "pm@impactgrid.com"
+        client_email = "client@impactgrid.com"
+
+        pm_user = db.query(User).filter(User.email == pm_email).first()
+        if not pm_user:
+            pm_user = User(
+                email=pm_email,
+                original_email=pm_email,
+                password_hash=hash_password("password123"),
+                full_name="Sarah Johnson",
+                role="project_manager",
+                department="Engineering",
+                is_active=True,
+                is_verified=True,
+            )
+            db.add(pm_user)
+            db.commit()
+            print(f"[OK] Seeded PM '{pm_email}'.")
+
+        client_user = db.query(User).filter(User.email == client_email).first()
+        if not client_user:
+            client_user = User(
+                email=client_email,
+                original_email=client_email,
+                password_hash=hash_password("password123"),
+                full_name="Michael Chen",
+                role="client",
+                department="Product",
+                client_id="CLT-1001",
+                is_active=True,
+                is_verified=True,
+            )
+            db.add(client_user)
+            db.commit()
+            print(f"[OK] Seeded Client '{client_email}'.")
+
+        # Seed Sample Project
+        sample_project_name = "E-Commerce Platform Redesign"
+        sample_project = db.query(Project).filter(Project.name == sample_project_name).first()
+        if not sample_project:
+            sample_project = Project(
+                name=sample_project_name,
+                description="Complete redesign of the e-commerce platform with modern UI/UX",
+                budget=250000.00,
+                initial_duration=90,
+                team_size=6,
+                stage="mid",
+                currency="USD",
+                owner_id=pm_user.id
+            )
+            db.add(sample_project)
+            db.commit()
+            print(f"[OK] Seeded Project '{sample_project_name}'.")
+
+        # Seed Sample Requirement and Change Request
+        sample_req_title = "Authentication System"
+        sample_req = db.query(Requirement).filter(Requirement.title == sample_req_title).first()
+        if not sample_req:
+            sample_req = Requirement(
+                project_id=sample_project.id,
+                title=sample_req_title,
+                description="Core authentication system",
+                created_by=pm_user.id
+            )
+            db.add(sample_req)
+            db.commit()
+
+        sample_cr_desc = "Implement MFA using TOTP for enhanced security"
+        sample_cr = db.query(ChangeRequest).filter(ChangeRequest.description == sample_cr_desc).first()
+        if not sample_cr:
+            sample_cr = ChangeRequest(
+                requirement_id=sample_req.id,
+                change_type="addition",
+                priority="high",
+                complexity="medium",
+                description=sample_cr_desc,
+                status="submitted",
+                submitted_by=client_user.id
+            )
+            db.add(sample_cr)
+            db.commit()
+            print(f"[OK] Seeded Change Request for MFA.")
+
         db.commit()
         print("[OK] Database initialized successfully (v5.1)")
     except Exception as e:
