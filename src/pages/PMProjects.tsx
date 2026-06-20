@@ -69,7 +69,7 @@ export default function PMProjects() {
       <div className="rounded-2xl border border-border bg-card overflow-hidden">
         <div className="p-4 border-b border-border flex justify-between items-center bg-accent/30">
           <h2 className="font-semibold">All Projects</h2>
-          <Link to="/pm/projects/new" className="text-xs font-semibold bg-primary text-primary-foreground px-3 py-1.5 rounded-lg">
+          <Link to="/projects" className="text-xs font-semibold bg-primary text-primary-foreground px-3 py-1.5 rounded-lg hover:bg-primary/90">
             Create Project
           </Link>
         </div>

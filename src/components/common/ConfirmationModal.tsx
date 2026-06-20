@@ -1,5 +1,6 @@
-/** Confirmation modal for destructive actions */
+/** Confirmation modal for destructive actions — viewport-centered via portal */
 import { AlertTriangle } from "lucide-react";
+import { ViewportModal } from "@/components/common/ViewportModal";
 
 interface Props {
   isOpen: boolean;
@@ -20,44 +21,33 @@ export function ConfirmationModal({
   onCancel,
   danger = true,
 }: Props) {
-  if (!isOpen) return null;
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-      onClick={onCancel}
-    >
+    <ViewportModal open={isOpen} onClose={onCancel} maxWidth="max-w-sm" title={title}>
       <div
-        className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-2xl animate-scale-in"
-        onClick={(e) => e.stopPropagation()}
+        className={`flex h-12 w-12 items-center justify-center rounded-2xl mx-auto mb-4 ${danger ? "bg-red-500/10" : "bg-primary/10"}`}
       >
-        <div
-          className={`flex h-12 w-12 items-center justify-center rounded-2xl mx-auto mb-4 ${danger ? "bg-red-500/10" : "bg-primary/10"}`}
-        >
-          <AlertTriangle
-            className={`h-6 w-6 ${danger ? "text-red-500" : "text-primary"}`}
-          />
-        </div>
-        <h3 className="text-lg font-bold text-center mb-2">{title}</h3>
-        <p className="text-sm text-muted-foreground text-center mb-6">
-          {message}
-        </p>
-        <div className="flex gap-3">
-          <button
-            onClick={onCancel}
-            className="flex-1 rounded-xl border border-border py-2.5 text-sm font-medium hover:bg-accent transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => {
-              onConfirm();
-            }}
-            className={`flex-1 rounded-xl py-2.5 text-sm font-semibold text-white transition-colors ${danger ? "bg-red-600 hover:bg-red-700" : "bg-primary hover:bg-primary/90"}`}
-          >
-            {confirmText}
-          </button>
-        </div>
+        <AlertTriangle
+          className={`h-6 w-6 ${danger ? "text-red-500" : "text-primary"}`}
+        />
       </div>
-    </div>
+      <h3 className="text-lg font-bold text-center mb-2">{title}</h3>
+      <p className="text-sm text-muted-foreground text-center mb-6">
+        {message}
+      </p>
+      <div className="flex gap-3">
+        <button
+          onClick={onCancel}
+          className="flex-1 rounded-xl border border-border py-2.5 text-sm font-medium hover:bg-accent transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={onConfirm}
+          className={`flex-1 rounded-xl py-2.5 text-sm font-semibold text-white transition-colors ${danger ? "bg-red-600 hover:bg-red-700" : "bg-primary hover:bg-primary/90"}`}
+        >
+          {confirmText}
+        </button>
+      </div>
+    </ViewportModal>
   );
 }

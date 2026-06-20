@@ -129,23 +129,23 @@ export default function PMAnalytics() {
             <PieIcon className="h-5 w-5 text-purple-500" /> Approval Status Distribution
           </h3>
           {approvalStatusData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
+            <ResponsiveContainer width="100%" height={240}>
+              <PieChart margin={{ top: 0, bottom: 0 }}>
                 <Pie
                   data={approvalStatusData}
                   dataKey="value"
                   nameKey="name"
                   cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  label={({ name, value }) => `${name}: ${value}`}
+                  cy="45%"
+                  outerRadius={72}
+                  labelLine={false}
                 >
                   {approvalStatusData.map((_, i) => (
                     <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip contentStyle={tooltipStyle} />
-                <Legend />
+                <Legend verticalAlign="bottom" height={36} />
               </PieChart>
             </ResponsiveContainer>
           ) : (

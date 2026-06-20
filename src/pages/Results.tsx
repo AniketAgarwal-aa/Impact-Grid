@@ -48,6 +48,10 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
+import { ViewportModal } from "@/components/common/ViewportModal";
+import { BudgetGauge } from "@/components/charts/BudgetGauge";
+import { QualityMetricsCards } from "@/components/charts/QualityMetricsCards";
+import { buildBurndownFromAnalysis } from "@/utils/analysisCharts";
 
 const CHART_COLORS = [
   "#6366f1",
@@ -224,14 +228,9 @@ export default function Results() {
     { sprint: "Current", risk: analysis.risk_score || 0 },
   ];
 
-  // Burndown chart: planned vs actual remaining work
-  const totalDays = time.new || 30;
-  const burndownData = Array.from({ length: 7 }, (_, i) => {
-    const day = Math.round((i / 6) * totalDays);
-    const planned = Math.round(totalDays * (1 - i / 6));
-    const actualFactor = 1 - (i / 6) * (0.7 + Math.random() * 0.15);
-    const actual = i < 5 ? Math.max(0, Math.round(totalDays * actualFactor)) : undefined;
-    return { day: `D${day}`, planned, actual };
+  // Burndown chart: planned vs actual remaining work (deterministic)
+  const burndownData = buildBurndownFromAnalysis({
+    time_impact: { new: time.new || 30 },
   });
 
   // Project Health data
@@ -335,14 +334,14 @@ export default function Results() {
             </span>
           </p>
           {fromSubmit && returnProjectId && (
-          <Link
-            to={`/projects/${returnProjectId}`}
-            className="mt-2 inline-flex items-center gap-1 text-sm text-primary hover:underline"
-          >
-            ← Back to project dashboard
-          </Link>
-        )}
-        <div className="flex flex-wrap gap-2 mt-2">
+            <Link
+              to={`/projects/${returnProjectId}`}
+              className="mt-2 inline-flex items-center gap-1 text-sm text-primary hover:underline"
+            >
+              ← Back to project dashboard
+            </Link>
+          )}
+          <div className="flex flex-wrap gap-2 mt-2">
             <StatusBadge
               status={
                 analysis.change_size?.toLowerCase() === "small"
@@ -870,6 +869,19 @@ export default function Results() {
       {/* Project Health Dashboard */}
       <Section title="🏥 Project Health Dashboard" defaultOpen={false}>
         <p className="text-xs text-muted-foreground mb-4">Key health metrics at a glance. Red = critical, Amber = at risk, Green = healthy.</p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+          <BudgetGauge
+            percentage={Math.min(100, Math.round(50 + (cost.percentage || 0)))}
+            usedAmount={format(convert(cost.new || 0, analysis.currency))}
+            remainingAmount={format(convert(Math.max(0, (cost.original || 0) * 1.5 - (cost.new || 0)), analysis.currency))}
+            totalAmount={format(convert((cost.original || 0) * 1.5, analysis.currency))}
+          />
+          <QualityMetricsCards
+            qualityImpact={analysis.quality_impact}
+            securityImpact={analysis.security_impact}
+            maintainabilityImpact={analysis.maintainability_impact}
+          />
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {projectHealthData.map((item) => (
             <div key={item.name} className="rounded-xl border border-border bg-accent/30 p-4">
@@ -962,41 +974,20 @@ export default function Results() {
         </div>
       </Section>
 
-      {/* Save Modal */}
-      {showSave && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-          onClick={() => setShowSave(false)}
-        >
-          <div
-            className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl animate-scale-in"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-lg font-bold mb-4">Save as Scenario</h2>
-            <input
-              type="text"
-              value={scenarioName}
-              onChange={(e) => setScenarioName(e.target.value)}
-              placeholder="Scenario name..."
-              className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary outline-none mb-4"
-            />
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setShowSave(false)}
-                className="rounded-xl border px-4 py-2 text-sm hover:bg-accent"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                className="rounded-xl bg-primary px-6 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
-              >
-                Save
-              </button>
-            </div>
-          </div>
+      <ViewportModal open={showSave} onClose={() => setShowSave(false)} maxWidth="max-w-md" title="Save as Scenario">
+        <h2 className="text-lg font-bold mb-4">Save as Scenario</h2>
+        <input
+          type="text"
+          value={scenarioName}
+          onChange={(e) => setScenarioName(e.target.value)}
+          placeholder="Scenario name..."
+          className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary outline-none mb-4"
+        />
+        <div className="flex gap-3 justify-end">
+          <button onClick={() => setShowSave(false)} className="rounded-xl border px-4 py-2 text-sm hover:bg-accent">Cancel</button>
+          <button onClick={handleSave} className="rounded-xl bg-primary px-6 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Save</button>
         </div>
-      )}
+      </ViewportModal>
     </div>
   );
 }

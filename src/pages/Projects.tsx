@@ -7,6 +7,7 @@ import { api } from "@/services/api";
 import { useCurrencyStore } from "@/stores/currencyStore";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { ConfirmationModal } from "@/components/common/ConfirmationModal";
+import { ViewportModal } from "@/components/common/ViewportModal";
 import { toast } from "@/components/common/Toast";
 import { Plus, Search, FolderKanban, Trash2 } from "lucide-react";
 
@@ -167,151 +168,74 @@ export default function Projects() {
         </div>
       )}
 
-      {/* Create Modal */}
-      {showCreate && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-          onClick={() => setShowCreate(false)}
-        >
-          <div
-            className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl animate-scale-in"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-xl font-bold mb-4">Create New Project</h2>
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div>
-                <label className="text-sm font-medium block mb-1">Name *</label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  required
-                  className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary outline-none"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium block mb-1">
-                  Description
-                </label>
-                <textarea
-                  value={form.description}
-                  onChange={(e) =>
-                    setForm({ ...form, description: e.target.value })
-                  }
-                  rows={2}
-                  className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary outline-none resize-none"
-                />
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="text-sm font-medium block mb-1">
-                    Team Size
-                  </label>
-                  <input
-                    type="number"
-                    value={form.team_size}
-                    onChange={(e) =>
-                      setForm({ ...form, team_size: +e.target.value })
-                    }
-                    min={1}
-                    className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium block mb-1">
-                    Total Budget
-                  </label>
-                  <input
-                    type="number"
-                    value={form.total_budget}
-                    onChange={(e) =>
-                      setForm({ ...form, total_budget: +e.target.value })
-                    }
-                    className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium block mb-1">
-                    Timeline (days)
-                  </label>
-                  <input
-                    type="number"
-                    value={form.timeline_days}
-                    onChange={(e) =>
-                      setForm({ ...form, timeline_days: +e.target.value })
-                    }
-                    className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary outline-none"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="text-sm font-medium block mb-1">
-                    Stage
-                  </label>
-                  <select
-                    value={form.stage}
-                    onChange={(e) =>
-                      setForm({ ...form, stage: e.target.value })
-                    }
-                    className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary outline-none"
-                  >
-                    <option value="early">Early</option>
-                    <option value="mid">Mid</option>
-                    <option value="late">Late</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium block mb-1">
-                    Currency
-                  </label>
-                  <select
-                    value={form.currency}
-                    onChange={(e) =>
-                      setForm({ ...form, currency: e.target.value })
-                    }
-                    className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary outline-none"
-                  >
-                    <option value="INR">₹ INR</option>
-                    <option value="USD">$ USD</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium block mb-1">
-                    Priority
-                  </label>
-                  <select
-                    value={form.priority}
-                    onChange={(e) =>
-                      setForm({ ...form, priority: e.target.value })
-                    }
-                    className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary outline-none"
-                  >
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                  </select>
-                </div>
-              </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCreate(false)}
-                  className="rounded-xl border border-border px-4 py-2 text-sm hover:bg-accent"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-xl bg-primary px-6 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
-                >
-                  Create
-                </button>
-              </div>
-            </form>
+      <ViewportModal open={showCreate} onClose={() => setShowCreate(false)} maxWidth="max-w-lg" title="Create New Project">
+        <h2 className="text-xl font-bold mb-4">Create New Project</h2>
+        <form onSubmit={handleCreate} className="space-y-4">
+          <div>
+            <label className="text-sm font-medium block mb-1">Name *</label>
+            <input
+              type="text"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              required
+              className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary outline-none"
+            />
           </div>
-        </div>
-      )}
+          <div>
+            <label className="text-sm font-medium block mb-1">Description</label>
+            <textarea
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              rows={2}
+              className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary outline-none resize-none"
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="text-sm font-medium block mb-1">Team Size</label>
+              <input type="number" value={form.team_size} onChange={(e) => setForm({ ...form, team_size: +e.target.value })} min={1}
+                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary outline-none" />
+            </div>
+            <div>
+              <label className="text-sm font-medium block mb-1">Total Budget</label>
+              <input type="number" value={form.total_budget} onChange={(e) => setForm({ ...form, total_budget: +e.target.value })}
+                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary outline-none" />
+            </div>
+            <div>
+              <label className="text-sm font-medium block mb-1">Timeline (days)</label>
+              <input type="number" value={form.timeline_days} onChange={(e) => setForm({ ...form, timeline_days: +e.target.value })}
+                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary outline-none" />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="text-sm font-medium block mb-1">Stage</label>
+              <select value={form.stage} onChange={(e) => setForm({ ...form, stage: e.target.value })}
+                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary outline-none">
+                <option value="early">Early</option><option value="mid">Mid</option><option value="late">Late</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-sm font-medium block mb-1">Currency</label>
+              <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })}
+                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary outline-none">
+                <option value="INR">₹ INR</option><option value="USD">$ USD</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-sm font-medium block mb-1">Priority</label>
+              <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}
+                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary outline-none">
+                <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={() => setShowCreate(false)} className="rounded-xl border border-border px-4 py-2 text-sm hover:bg-accent">Cancel</button>
+            <button type="submit" className="rounded-xl bg-primary px-6 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Create</button>
+          </div>
+        </form>
+      </ViewportModal>
 
       <ConfirmationModal
         isOpen={!!deleteId}

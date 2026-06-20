@@ -10,6 +10,9 @@ import { PageLoader } from "@/components/common/LoadingSpinner";
 import { useCurrencyStore } from "@/stores/currencyStore";
 import { useAuthStore } from "@/stores/authStore";
 import { AnalysisChartsPanel } from "@/components/charts/AnalysisChartsPanel";
+import { BudgetGauge } from "@/components/charts/BudgetGauge";
+import { QualityMetricsCards } from "@/components/charts/QualityMetricsCards";
+import { ViewportModal } from "@/components/common/ViewportModal";
 import {
   Plus, Trash2, ChevronDown, ChevronRight, BarChart3,
   ExternalLink, Clock, Users, Zap, CheckCircle,
@@ -66,25 +69,26 @@ function RequirementMiniCharts({ crs }: { crs: any[] }) {
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 px-6 py-4 bg-accent/5 border-t border-border/30">
       <div>
         <p className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wide">CR Status</p>
-        <ResponsiveContainer width="100%" height={130}>
-          <PieChart>
-            <Pie data={statusData} dataKey="value" cx="50%" cy="50%" outerRadius={50}
-              label={({ name, value }) => `${name} (${value})`} labelLine={false} fontSize={9}>
+        <ResponsiveContainer width="100%" height={140}>
+          <PieChart margin={{ top: 0, bottom: 0 }}>
+            <Pie data={statusData} dataKey="value" cx="50%" cy="50%" outerRadius={48}
+              labelLine={false} fontSize={9}>
               {statusData.map((entry, i) => (
                 <Cell key={i} fill={STATUS_COLORS[entry.rawName] || PIE_COLORS[i % PIE_COLORS.length]} />
               ))}
             </Pie>
             <Tooltip contentStyle={tooltipStyle} />
+            <Legend verticalAlign="bottom" height={28} wrapperStyle={{ fontSize: 9 }} />
           </PieChart>
         </ResponsiveContainer>
       </div>
       <div>
         <p className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wide">Priority</p>
-        <ResponsiveContainer width="100%" height={130}>
-          <BarChart data={priorityData} layout="vertical">
+        <ResponsiveContainer width="100%" height={140}>
+          <BarChart data={priorityData} layout="vertical" margin={{ top: 4, right: 12, left: 0, bottom: 4 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis type="number" fontSize={9} allowDecimals={false} />
-            <YAxis type="category" dataKey="name" fontSize={9} width={55} />
+            <YAxis type="category" dataKey="name" fontSize={9} width={60} />
             <Tooltip contentStyle={tooltipStyle} />
             <Bar dataKey="value" radius={[0, 4, 4, 0]}>
               {priorityData.map((entry, i) => (
@@ -117,6 +121,7 @@ export default function ProjectDetail() {
   });
 
   const isClient = user?.role === "client";
+  const canSubmitCR = isClient || user?.role === "project_manager" || user?.role === "admin";
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -218,7 +223,11 @@ export default function ProjectDetail() {
   ].filter((e) => e.value > 0);
 
   const avgCostPct = analyses.reduce((s, a) => s + (a.cost_impact?.percentage || 0), 0) / Math.max(analyses.length, 1);
-  const budgetUsedPct = Math.min(100, Math.round(50 + avgCostPct));
+  const totalBudget = parseFloat(project.total_budget || project.budget || 0);
+  const totalCostUsed = analyses.reduce((s, a) => s + (a.cost_impact?.new || 0), 0);
+  const budgetUsedPct = totalBudget > 0
+    ? Math.min(100, Math.round((totalCostUsed / totalBudget) * 100))
+    : Math.min(100, Math.round(50 + avgCostPct));
 
   const scatterData = allCRs.map((cr, i) => {
     const complexityScore = cr.complexity === "very_high" ? 4 : cr.complexity === "high" ? 3 : cr.complexity === "medium" ? 2 : 1;
@@ -268,7 +277,7 @@ export default function ProjectDetail() {
               {allCRs.length} CRs · {project.requirements?.length || 0} requirements
             </span>
           </div>
-          {isClient && (
+          {canSubmitCR && (
             <button
               onClick={() => goSubmitCR()}
               className="flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20"
@@ -284,12 +293,12 @@ export default function ProjectDetail() {
             <p className="text-sm text-muted-foreground mb-4">
               No change requests yet. Submit one to unlock all project charts.
             </p>
-            {isClient ? (
+            {canSubmitCR ? (
               <button onClick={() => goSubmitCR()} className="rounded-xl bg-primary px-6 py-2 text-sm font-semibold text-primary-foreground">
                 Submit First Change Request
               </button>
             ) : (
-              <p className="text-xs text-muted-foreground">Add a requirement below, then ask your client to submit a change request.</p>
+              <p className="text-xs text-muted-foreground">Add a requirement below, then submit a change request to unlock charts.</p>
             )}
           </div>
         ) : (
@@ -319,25 +328,26 @@ export default function ProjectDetail() {
               </ChartCard>
 
               <ChartCard title="Approval Status" icon={Activity} color="text-purple-500">
-                <ResponsiveContainer width="100%" height={200}>
-                  <PieChart>
-                    <Pie data={statusChartData} dataKey="value" cx="50%" cy="45%" outerRadius={70}
-                      label={({ name, value }) => `${name} (${value})`} labelLine={false} fontSize={10}>
+                <ResponsiveContainer width="100%" height={220}>
+                  <PieChart margin={{ top: 0, bottom: 0 }}>
+                    <Pie data={statusChartData} dataKey="value" cx="50%" cy="45%" outerRadius={65}
+                      labelLine={false} fontSize={10}>
                       {statusChartData.map((entry, i) => (
                         <Cell key={i} fill={STATUS_COLORS[entry.rawName] || PIE_COLORS[i % PIE_COLORS.length]} />
                       ))}
                     </Pie>
                     <Tooltip contentStyle={tooltipStyle} />
+                    <Legend verticalAlign="bottom" height={36} />
                   </PieChart>
                 </ResponsiveContainer>
               </ChartCard>
 
               <ChartCard title="Priority Breakdown" icon={AlertTriangle} color="text-amber-500">
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={priorityChartData} layout="vertical">
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={priorityChartData} layout="vertical" margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis type="number" fontSize={10} allowDecimals={false} />
-                    <YAxis type="category" dataKey="name" fontSize={10} width={65} />
+                    <YAxis type="category" dataKey="name" fontSize={10} width={72} />
                     <Tooltip contentStyle={tooltipStyle} />
                     <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                       {priorityChartData.map((entry, i) => (
@@ -369,16 +379,16 @@ export default function ProjectDetail() {
 
               <ChartCard title="Team Workload Distribution" icon={Users} color="text-emerald-500">
                 {effortPieData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={220}>
-                    <PieChart>
+                  <ResponsiveContainer width="100%" height={240}>
+                    <PieChart margin={{ top: 0, bottom: 0 }}>
                       <Pie data={effortPieData} dataKey="value" cx="50%" cy="45%"
-                        innerRadius={50} outerRadius={80} label={({ name, value }) => `${name}: ${value}d`} fontSize={11}>
+                        innerRadius={45} outerRadius={72} labelLine={false} fontSize={10}>
                         {effortPieData.map((_, i) => (
                           <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip contentStyle={tooltipStyle} />
-                      <Legend />
+                      <Tooltip contentStyle={tooltipStyle} formatter={(v: number, name: string) => [`${v} days`, name]} />
+                      <Legend verticalAlign="bottom" height={36} />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
@@ -477,24 +487,23 @@ export default function ProjectDetail() {
               </div>
             )}
 
+            {hasAnalysisCharts && (
+              <ChartCard title="Quality Metrics" icon={CheckCircle} color="text-emerald-500">
+                <QualityMetricsCards
+                  qualityImpact={Math.round(analyses.reduce((s, a) => s + ((a as { quality_impact?: number }).quality_impact || a.risk_breakdown?.quality || 0), 0) / analyses.length)}
+                  maintainabilityImpact={Math.round(analyses.reduce((s, a) => s + ((a as { maintainability_impact?: number }).maintainability_impact || 0), 0) / analyses.length)}
+                />
+              </ChartCard>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <ChartCard title="Budget Utilization" icon={TrendingUp} color="text-amber-500">
-                <ResponsiveContainer width="100%" height={200}>
-                  <PieChart>
-                    <Pie
-                      data={[
-                        { value: budgetUsedPct, fill: budgetUsedPct > 85 ? "#ef4444" : budgetUsedPct > 70 ? "#f59e0b" : "#10b981" },
-                        { value: 100 - budgetUsedPct, fill: "#e2e8f0" },
-                      ]}
-                      cx="50%" cy="75%" startAngle={180} endAngle={0}
-                      innerRadius={70} outerRadius={95} dataKey="value" stroke="none"
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="text-center -mt-14">
-                  <div className="text-3xl font-black">{budgetUsedPct}%</div>
-                  <div className="text-xs text-muted-foreground">Budget Used</div>
-                </div>
+                <BudgetGauge
+                  percentage={budgetUsedPct}
+                  usedAmount={format(convert(totalCostUsed, project.currency))}
+                  remainingAmount={format(convert(Math.max(0, totalBudget - totalCostUsed), project.currency))}
+                  totalAmount={format(convert(totalBudget, project.currency))}
+                />
               </ChartCard>
 
               <ChartCard title="Impact vs Complexity" icon={AlertTriangle} color="text-purple-500">
@@ -616,7 +625,7 @@ export default function ProjectDetail() {
                         {reqCRs.length === 0 ? (
                           <div className="px-8 py-5 text-center">
                             <p className="text-xs text-muted-foreground">No change requests yet.</p>
-                            {isClient && (
+                            {canSubmitCR && (
                               <button onClick={() => goSubmitCR(req.id)} className="mt-2 text-xs text-primary hover:underline">
                                 Submit change request →
                               </button>
@@ -678,7 +687,7 @@ export default function ProjectDetail() {
                         )}
                       </div>
 
-                      {isClient && (
+                      {canSubmitCR && (
                         <div className="px-6 py-3 border-t border-border/30">
                           <button onClick={() => goSubmitCR(req.id)} className="flex items-center gap-1.5 text-xs text-primary hover:underline">
                             <Plus className="h-3 w-3" /> Add change request for this requirement
@@ -694,43 +703,44 @@ export default function ProjectDetail() {
         )}
       </div>
 
-      {/* Add Requirement Modal */}
-      {showAddReq && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowAddReq(false)}>
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-bold mb-1">Add Requirement</h2>
-            <p className="text-xs text-muted-foreground mb-5">Define a requirement to track change requests against.</p>
-            <form onSubmit={addReq} className="space-y-4">
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Title *</label>
-                <input type="text" value={reqForm.title} onChange={(e) => setReqForm({ ...reqForm, title: e.target.value })} required
-                  className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary outline-none" />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Description</label>
-                <textarea value={reqForm.description} onChange={(e) => setReqForm({ ...reqForm, description: e.target.value })} rows={2}
-                  className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none resize-none" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <select value={reqForm.complexity} onChange={(e) => setReqForm({ ...reqForm, complexity: e.target.value })}
-                  className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm">
-                  <option value="low">Low</option><option value="medium">Medium</option>
-                  <option value="high">High</option><option value="very_high">Very High</option>
-                </select>
-                <select value={reqForm.priority} onChange={(e) => setReqForm({ ...reqForm, priority: e.target.value })}
-                  className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm">
-                  <option value="low">Low</option><option value="medium">Medium</option>
-                  <option value="high">High</option><option value="critical">Critical</option>
-                </select>
-              </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setShowAddReq(false)} className="rounded-xl border px-4 py-2 text-sm">Cancel</button>
-                <button type="submit" className="rounded-xl bg-primary px-6 py-2 text-sm font-semibold text-primary-foreground">Add Requirement</button>
-              </div>
-            </form>
+      <ViewportModal open={showAddReq} onClose={() => setShowAddReq(false)} maxWidth="max-w-md" title="Add Requirement">
+        <h2 className="text-lg font-bold mb-1">Add Requirement</h2>
+        <p className="text-xs text-muted-foreground mb-5">Define a requirement to track change requests against.</p>
+        <form onSubmit={addReq} className="space-y-4">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Title *</label>
+            <input type="text" value={reqForm.title} onChange={(e) => setReqForm({ ...reqForm, title: e.target.value })} required
+              className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary outline-none" />
           </div>
-        </div>
-      )}
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Description</label>
+            <textarea value={reqForm.description} onChange={(e) => setReqForm({ ...reqForm, description: e.target.value })} rows={3}
+              className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none resize-none" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Complexity</label>
+              <select value={reqForm.complexity} onChange={(e) => setReqForm({ ...reqForm, complexity: e.target.value })}
+                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm">
+                <option value="low">Low</option><option value="medium">Medium</option>
+                <option value="high">High</option><option value="very_high">Very High</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Priority</label>
+              <select value={reqForm.priority} onChange={(e) => setReqForm({ ...reqForm, priority: e.target.value })}
+                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm">
+                <option value="low">Low</option><option value="medium">Medium</option>
+                <option value="high">High</option><option value="critical">Critical</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={() => setShowAddReq(false)} className="rounded-xl border px-4 py-2 text-sm hover:bg-accent">Cancel</button>
+            <button type="submit" className="rounded-xl bg-primary px-6 py-2 text-sm font-semibold text-primary-foreground">Add Requirement</button>
+          </div>
+        </form>
+      </ViewportModal>
 
       <DiscussionThread entityType="project" entityId={parseInt(id!)} title="Project Discussion" />
     </div>

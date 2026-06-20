@@ -76,9 +76,9 @@ export default function AdvancedAnalytics() {
       setLoading(true);
       try {
         const [p, a, u] = await Promise.allSettled([
-          api.get("/api/analytics/predictions?weeks=6"),
-          api.get("/api/analytics/anomalies"),
-          api.get(`/api/analytics/usage?period=${period}`),
+          api.get("/analytics/predictions?weeks=6"),
+          api.get("/analytics/anomalies"),
+          api.get(`/analytics/usage?period=${period}`),
         ]);
         if (p.status === "fulfilled") setPredictions(p.value as PredictionData);
         if (a.status === "fulfilled") setAnomalies(a.value as AnomalyData);
