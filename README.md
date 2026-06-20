@@ -1,61 +1,60 @@
-# ImpactSensei - Enterprise Requirement Change Impact Simulator
+# Impact Grid - Change Impact Simulator
 
-## 🚀 Overview
-ImpactSensei is a complete enterprise-grade platform that simulates how software requirement changes affect Time, Cost, Effort, and Risk.
+![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.104-009688?logo=fastapi)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?logo=typescript)
 
-## 👥 Roles
-- **Admin** - Full system control (aniketagarwal359@gmail.com / password)
-- **Project Manager** - Company/project level management
-- **Client** - Own projects only
+**Impact Grid** is a platform designed to simulate how software requirement changes affect **Time**, **Cost**, **Effort**, and **Risk**. It is built to help evaluate the impact of scope changes before approval.
 
-## 🛠️ Tech Stack
-- Frontend: React 18 + TypeScript + Tailwind CSS
-- Backend: FastAPI + SQLAlchemy + SQLite/PostgreSQL
-- Auth: JWT + bcrypt + 2FA + Google OAuth
-- Real-time: WebSockets
+> **Live Demo**: [impact-sensei.vercel.app](https://impact-sensei.vercel.app)
 
-## 📦 Installation
+## Features
+- **Impact Analysis**: Automatically calculates impact across cost, time, effort, and risk dimensions.
+- **Authentication**: Secure JWT authentication, 6-digit Email OTP, and 2FA via Google Authenticator. Single-device sessions are enforced.
+- **User Roles**: Supports Super Admin, Project Manager, and Client roles with varying access levels.
+- **Reporting**: Export reports to PDF and view interactive data charts.
 
-### Backend
+## Tech Stack
+- **Frontend**: React, TypeScript, Tailwind CSS, Zustand, Recharts
+- **Backend**: FastAPI, SQLAlchemy, JWT + bcrypt, SQLite (or PostgreSQL)
+
+## User Roles
+1. **Super Admin**: Full system control.
+2. **Project Manager**: Create projects, approve changes.
+3. **Client**: Submit change requests.
+
+## Quick Start Guide
+
+### Prerequisites
+- Python 3.11+
+- Node.js 18+
+
+### 1. Backend Setup
 ```bash
 cd backend
 python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# Windows:
+venv\Scripts\activate
+# Mac/Linux:
+# source venv/bin/activate
+
 pip install -r requirements.txt
 python run.py
 ```
 
-### Frontend
+### 2. Frontend Setup
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-## 🌐 Deployment
-- Backend: Render.com
-- Frontend: Vercel
-- Database: Render PostgreSQL / Supabase
+## Environment Variables
+Create a `.env` file in the `backend` folder and refer to the `.env.example` file for the required keys (like `DATABASE_URL`, `SECRET_KEY`, etc.).
 
-## 📧 Environment Variables
-Copy .env.example to .env and fill values:
-- DATABASE_URL
-- SECRET_KEY
-- SMTP_HOST, SMTP_USER, SMTP_PASSWORD (optional)
-
-## ✅ Features
-- 3 roles with separate UIs
-- Email verification + password reset
-- 2FA + Google OAuth
-- Real-time WebSocket updates
-- Impact calculations (6 cost / 5 time / 3 effort / 5 risk)
-- Gantt charts, burndown, sprint planning
-- PDF/Excel/CSV/ZIP exports
-- Dark mode + responsive design
-
-## 📄 License
-MIT
-
-## 👨‍💻 Admin Access
-- Email: aniketagarwal359@gmail.com
-- Password: password
+## Demo Accounts
+You can test the system locally with the following default accounts:
+- **Admin**: `admin1@impactstudio.com` / `password`
+- **PM**: `pm@impactgrid.com` / `password123`
+- **Client**: `client@impactgrid.com` / `password123`

@@ -8,6 +8,7 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.pyi
 
 # Build outputs
 dist/
@@ -25,6 +26,7 @@ build/
 .env.local
 .env.production
 .env.development
+*.env
 
 # IDE
 .vscode/
@@ -51,6 +53,8 @@ playwright-report/
 test-results/
 *.test.js
 *.spec.js
+*.test.ts
+*.spec.ts
 
 # Temporary files
 *.tmp
@@ -60,6 +64,10 @@ test-results/
 *.backup
 
 # Deployment
-.DS_Store
 .vercel
 .render
+
+# System files
+.DS_Store
+Thumbs.db
+.tern-port

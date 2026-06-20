@@ -294,6 +294,7 @@ async def login(data: LoginRequest, request: Request, db: Session = Depends(get_
         "email": user.email,
         "role": user.role,
         "tfa_verified": True,
+    }
     access_token, access_jti = create_access_token(token_data)
     refresh_token = create_refresh_token(token_data)
 
