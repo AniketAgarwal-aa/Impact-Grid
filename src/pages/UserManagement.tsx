@@ -43,7 +43,6 @@ export default function UserManagement() {
     password: "",
     full_name: "",
     role: "client",
-    department: "",
     designation: "",
     is_verified: true,
   });
@@ -69,7 +68,7 @@ export default function UserManagement() {
       await api.createAdminUser(form);
       toast.success("User created. Verification email sent.");
       setShowCreate(false);
-      setForm({ email: "", password: "", full_name: "", role: "client", department: "", designation: "", is_verified: true });
+      setForm({ email: "", password: "", full_name: "", role: "client", designation: "", is_verified: true });
       load();
     } catch (err: unknown) {
       toast.error(err.message);
@@ -265,7 +264,7 @@ export default function UserManagement() {
             <ShieldCheck className="h-4 w-4 text-purple-500 mt-0.5 shrink-0" />
             <div>
               <span className="font-semibold text-purple-600">Admin</span>
-              <p className="text-muted-foreground">Full system access. Super admins (admin1/admin2@impactstudio.com) cannot be modified.</p>
+              <p className="text-muted-foreground">Full system access. Super admins cannot be modified.</p>
             </div>
           </div>
           <div className="flex items-start gap-2">
@@ -336,13 +335,7 @@ export default function UserManagement() {
                   <option value="admin">Admin</option>
                 </select>
               </div>
-              <input
-                type="text"
-                value={form.department}
-                onChange={(e) => setForm({ ...form, department: e.target.value })}
-                placeholder="Department (optional)"
-                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary outline-none"
-              />
+
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"

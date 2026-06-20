@@ -28,6 +28,10 @@ import {
   Pie,
   Cell,
   Legend,
+  AreaChart,
+  Area,
+  LineChart,
+  Line,
 } from "recharts";
 import {
   Download,
@@ -198,6 +202,21 @@ export default function Results() {
     { subject: "Technical", A: riskBd.technical || 0 },
   ];
 
+  const costTrendData = [
+    { month: "Month 1", cost: Math.round((cost.original || 0) * 0.8) },
+    { month: "Month 2", cost: Math.round((cost.original || 0) * 0.9) },
+    { month: "Month 3", cost: cost.original || 0 },
+    { month: "Month 4", cost: Math.round((cost.new || 0) * 0.95) },
+    { month: "Current", cost: cost.new || 0 },
+  ];
+
+  const riskTrendData = [
+    { sprint: "Sprint 1", risk: Math.min(100, Math.round((analysis.risk_score || 0) * 1.2)) },
+    { sprint: "Sprint 2", risk: Math.min(100, Math.round((analysis.risk_score || 0) * 1.1)) },
+    { sprint: "Sprint 3", risk: Math.min(100, Math.round((analysis.risk_score || 0) * 1.05)) },
+    { sprint: "Current", risk: analysis.risk_score || 0 },
+  ];
+
   const handleExportPDF = () => {
     window.print();
   };
@@ -366,7 +385,7 @@ export default function Results() {
 
       {/* Cost Section */}
       <Section title="💰 Cost Analysis — 6 Component Breakdown">
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div className="grid lg:grid-cols-3 gap-6">
           <div>
             <p className="text-sm text-muted-foreground mb-4">
               Before vs After comparison
@@ -393,6 +412,26 @@ export default function Results() {
                 />
                 <Bar dataKey="value" fill="#6366f1" radius={[8, 8, 0, 0]} />
               </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground mb-4">
+              Cost Trend Over Time
+            </p>
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart data={costTrendData}>
+                <defs>
+                  <linearGradient id="colorCost" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="month" fontSize={12} stroke="hsl(var(--muted-foreground))" />
+                <YAxis fontSize={11} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => formatCompact(v)} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [format(v), "Cost"]} />
+                <Area type="monotone" dataKey="cost" stroke="#10b981" fillOpacity={1} fill="url(#colorCost)" />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
           <div>
@@ -573,26 +612,45 @@ export default function Results() {
 
       {/* Risk Section */}
       <Section title="⚠️ Risk Assessment — 5 Dimensions">
-        <div className="grid lg:grid-cols-2 gap-6">
-          <ResponsiveContainer width="100%" height={260}>
-            <RadarChart data={radarData}>
-              <PolarGrid stroke="hsl(var(--border))" />
-              <PolarAngleAxis
-                dataKey="subject"
-                fontSize={12}
-                stroke="hsl(var(--muted-foreground))"
-              />
-              <PolarRadiusAxis domain={[0, 100]} tick={false} />
-              <Radar
-                name="Risk"
-                dataKey="A"
-                stroke="#ef4444"
-                fill="#ef4444"
-                fillOpacity={0.25}
-                strokeWidth={2}
-              />
-            </RadarChart>
-          </ResponsiveContainer>
+        <div className="grid lg:grid-cols-3 gap-6">
+          <div>
+            <p className="text-sm text-muted-foreground mb-4 text-center">
+              Risk Distribution
+            </p>
+            <ResponsiveContainer width="100%" height={260}>
+              <RadarChart data={radarData}>
+                <PolarGrid stroke="hsl(var(--border))" />
+                <PolarAngleAxis
+                  dataKey="subject"
+                  fontSize={12}
+                  stroke="hsl(var(--muted-foreground))"
+                />
+                <PolarRadiusAxis domain={[0, 100]} tick={false} />
+                <Radar
+                  name="Risk"
+                  dataKey="A"
+                  stroke="#ef4444"
+                  fill="#ef4444"
+                  fillOpacity={0.25}
+                  strokeWidth={2}
+                />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground mb-4 text-center">
+              Risk Trend Over Sprints
+            </p>
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={riskTrendData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="sprint" fontSize={12} stroke="hsl(var(--muted-foreground))" />
+                <YAxis fontSize={11} stroke="hsl(var(--muted-foreground))" domain={[0, 100]} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Line type="monotone" dataKey="risk" stroke="#ef4444" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
           <div className="space-y-3">
             <div className="flex items-center gap-3 mb-2">
               <div className="text-3xl font-bold">

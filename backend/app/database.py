@@ -402,6 +402,86 @@ def init_db():
             db.commit()
             print(f"[OK] Seeded Change Request for MFA.")
 
+        # Seed Indian Sample PM and Client
+        indian_pm_email = "rahul@impactgrid.com"
+        indian_client_email = "priya@impactgrid.com"
+
+        indian_pm_user = db.query(User).filter(User.email == indian_pm_email).first()
+        if not indian_pm_user:
+            indian_pm_user = User(
+                email=indian_pm_email,
+                original_email=indian_pm_email,
+                password_hash=hash_password("password123"),
+                full_name="Rahul Sharma",
+                role="project_manager",
+                department="Engineering",
+                is_active=True,
+                is_verified=True,
+            )
+            db.add(indian_pm_user)
+            db.commit()
+
+        indian_client_user = db.query(User).filter(User.email == indian_client_email).first()
+        if not indian_client_user:
+            indian_client_user = User(
+                email=indian_client_email,
+                original_email=indian_client_email,
+                password_hash=hash_password("password123"),
+                full_name="Priya Patel",
+                role="client",
+                department="Product",
+                client_id="CLT-1002",
+                is_active=True,
+                is_verified=True,
+            )
+            db.add(indian_client_user)
+            db.commit()
+
+        # Seed Sample Indian Project
+        indian_project_name = "UPI Gateway Integration"
+        indian_project = db.query(Project).filter(Project.name == indian_project_name).first()
+        if not indian_project:
+            indian_project = Project(
+                name=indian_project_name,
+                description="Integrating UPI gateway for real-time payments",
+                budget=850000.00,
+                initial_duration=120,
+                team_size=8,
+                stage="early",
+                currency="INR",
+                owner_id=indian_pm_user.id
+            )
+            db.add(indian_project)
+            db.commit()
+
+        # Seed Indian Requirement
+        indian_req_title = "Payment Processor Module"
+        indian_req = db.query(Requirement).filter(Requirement.title == indian_req_title).first()
+        if not indian_req:
+            indian_req = Requirement(
+                project_id=indian_project.id,
+                title=indian_req_title,
+                description="Core payment processing logic for UPI",
+                created_by=indian_pm_user.id
+            )
+            db.add(indian_req)
+            db.commit()
+
+        indian_cr_desc = "Add support for multiple UPI apps (GPay, PhonePe, Paytm)"
+        indian_cr = db.query(ChangeRequest).filter(ChangeRequest.description == indian_cr_desc).first()
+        if not indian_cr:
+            indian_cr = ChangeRequest(
+                requirement_id=indian_req.id,
+                change_type="addition",
+                priority="high",
+                complexity="high",
+                description=indian_cr_desc,
+                status="submitted",
+                submitted_by=indian_client_user.id
+            )
+            db.add(indian_cr)
+            db.commit()
+
         db.commit()
         print("[OK] Database initialized successfully (v5.1)")
     except Exception as e:

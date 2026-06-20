@@ -93,7 +93,8 @@ export default function AuditLogs() {
         <span className="px-3 py-1.5 text-sm">Page {page}</span>
         <button
           onClick={() => setPage((p) => p + 1)}
-          className="rounded-lg border px-3 py-1.5 text-sm hover:bg-accent"
+          disabled={logs.length < 50}
+          className="rounded-lg border px-3 py-1.5 text-sm hover:bg-accent disabled:opacity-30"
         >
           Next
         </button>

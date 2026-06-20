@@ -8,7 +8,6 @@ export default function Profile() {
   const { user, updateProfile } = useAuthStore();
   const [form, setForm] = useState({
     full_name: user?.full_name || "",
-    department: user?.department || "",
     designation: user?.designation || "",
     phone: user?.phone || "",
   });
@@ -92,19 +91,6 @@ export default function Profile() {
                 type="text"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary outline-none"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium block mb-1">
-                Department
-              </label>
-              <input
-                type="text"
-                value={form.department}
-                onChange={(e) =>
-                  setForm({ ...form, department: e.target.value })
-                }
                 className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary outline-none"
               />
             </div>
