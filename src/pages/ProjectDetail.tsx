@@ -39,19 +39,35 @@ const STATUS_COLORS: Record<string, string> = {
 const PRIORITY_COLORS: Record<string, string> = {
   critical: "#ef4444", high: "#f59e0b", medium: "#6366f1", low: "#10b981",
 };
+
+/** Tooltip style that works in both light AND dark mode */
 const tooltipStyle = {
   background: "hsl(var(--card))",
   border: "1px solid hsl(var(--border))",
   borderRadius: "12px",
   fontSize: "12px",
   color: "hsl(var(--foreground))",
+  boxShadow: "0 4px 24px rgba(0,0,0,0.15)",
 };
+const tooltipItemStyle = { color: "hsl(var(--foreground))" };
+const tooltipLabelStyle = { color: "hsl(var(--muted-foreground))", fontWeight: 600 };
 
-function ChartCard({ title, icon: Icon, color, children }: {
-  title: string; icon: React.ComponentType<{ className?: string }>; color: string; children: React.ReactNode;
+/** Legend formatter for dark mode compatibility */
+const legendFormatter = (value: string) => (
+  <span style={{ color: "hsl(var(--foreground))", fontSize: "12px" }}>{value}</span>
+);
+
+/** Axis tick style for dark mode */
+const axisTick = { fill: "hsl(var(--foreground))" };
+
+function ChartCard({
+  title, icon: Icon, color, children, className = "",
+}: {
+  title: string; icon: React.ComponentType<{ className?: string }>; color: string;
+  children: React.ReactNode; className?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+    <div className={`rounded-2xl border border-border bg-card p-5 shadow-sm hover:shadow-md transition-all ${className}`}>
       <h3 className="font-semibold flex items-center gap-2 mb-4 text-sm">
         <Icon className={`h-4 w-4 ${color}`} />
         {title}
@@ -68,28 +84,28 @@ function RequirementMiniCharts({ crs }: { crs: any[] }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 px-6 py-4 bg-accent/5 border-t border-border/30">
       <div>
-        <p className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wide">CR Status</p>
-        <ResponsiveContainer width="100%" height={140}>
+        <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">CR Status</p>
+        <ResponsiveContainer width="100%" height={150}>
           <PieChart margin={{ top: 0, bottom: 0 }}>
             <Pie data={statusData} dataKey="value" cx="50%" cy="50%" outerRadius={48}
-              labelLine={false} fontSize={9}>
+              innerRadius={20} labelLine={false} paddingAngle={2}>
               {statusData.map((entry, i) => (
                 <Cell key={i} fill={STATUS_COLORS[entry.rawName] || PIE_COLORS[i % PIE_COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip contentStyle={tooltipStyle} />
-            <Legend verticalAlign="bottom" height={28} wrapperStyle={{ fontSize: 9 }} />
+            <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipItemStyle} />
+            <Legend verticalAlign="bottom" height={28} formatter={legendFormatter} />
           </PieChart>
         </ResponsiveContainer>
       </div>
       <div>
-        <p className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wide">Priority</p>
-        <ResponsiveContainer width="100%" height={140}>
-          <BarChart data={priorityData} layout="vertical" margin={{ top: 4, right: 12, left: 0, bottom: 4 }}>
+        <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Priority</p>
+        <ResponsiveContainer width="100%" height={150}>
+          <BarChart data={priorityData} layout="vertical" margin={{ top: 4, right: 12, left: 4, bottom: 4 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis type="number" fontSize={9} allowDecimals={false} />
-            <YAxis type="category" dataKey="name" fontSize={9} width={60} />
-            <Tooltip contentStyle={tooltipStyle} />
+            <XAxis type="number" fontSize={9} tick={axisTick} allowDecimals={false} />
+            <YAxis type="category" dataKey="name" fontSize={9} tick={axisTick} width={60} />
+            <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipItemStyle} />
             <Bar dataKey="value" radius={[0, 4, 4, 0]}>
               {priorityData.map((entry, i) => (
                 <Cell key={i} fill={PRIORITY_COLORS[entry.rawName] || PIE_COLORS[i % PIE_COLORS.length]} />
@@ -202,42 +218,46 @@ export default function ProjectDetail() {
   if (!project) return <div className="py-20 text-center text-muted-foreground">Project not found</div>;
 
   const statusChartData = toChartData(groupBy(allCRs, "status"));
-  const typeChartData = toChartData(groupBy(allCRs, "change_type"));
+  const typeChartData   = toChartData(groupBy(allCRs, "change_type"));
   const priorityChartData = toChartData(groupBy(allCRs, "priority"));
   const approvedCount = allCRs.filter((c) => c.status === "approved" || c.status === "implemented").length;
-  const pendingCount = allCRs.filter((c) => c.status === "submitted" || c.status === "analyzed").length;
-  const progressPct = allCRs.length > 0 ? Math.round((approvedCount / allCRs.length) * 100) : 0;
+  const pendingCount  = allCRs.filter((c) => c.status === "submitted" || c.status === "analyzed").length;
+  const progressPct   = allCRs.length > 0 ? Math.round((approvedCount / allCRs.length) * 100) : 0;
   const hasAnalysisCharts = analyses.length > 0;
 
   const costTrendData = buildCostTrendFromAnalyses(analyses, "description");
   const riskTrendData = buildRiskTrendFromAnalyses(analyses);
-  const burndownData = buildBurndownFromAnalysis(aggregated);
+  const burndownData  = buildBurndownFromAnalysis(aggregated);
 
   const totalSenior = analyses.reduce((s, a) => s + (a.effort_impact?.breakdown?.senior || 0), 0);
-  const totalMid = analyses.reduce((s, a) => s + (a.effort_impact?.breakdown?.mid || 0), 0);
+  const totalMid    = analyses.reduce((s, a) => s + (a.effort_impact?.breakdown?.mid    || 0), 0);
   const totalJunior = analyses.reduce((s, a) => s + (a.effort_impact?.breakdown?.junior || 0), 0);
   const effortPieData = [
-    { name: "Senior", value: Math.round(totalSenior) },
+    { name: "Senior",    value: Math.round(totalSenior) },
     { name: "Mid-Level", value: Math.round(totalMid) },
-    { name: "Junior", value: Math.round(totalJunior) },
+    { name: "Junior",    value: Math.round(totalJunior) },
   ].filter((e) => e.value > 0);
 
-  const avgCostPct = analyses.reduce((s, a) => s + (a.cost_impact?.percentage || 0), 0) / Math.max(analyses.length, 1);
-  const totalBudget = parseFloat(project.total_budget || project.budget || 0);
+  const avgCostPct    = analyses.reduce((s, a) => s + (a.cost_impact?.percentage || 0), 0) / Math.max(analyses.length, 1);
+  const totalBudget   = parseFloat(project.total_budget || project.budget || 0);
   const totalCostUsed = analyses.reduce((s, a) => s + (a.cost_impact?.new || 0), 0);
   const budgetUsedPct = totalBudget > 0
     ? Math.min(100, Math.round((totalCostUsed / totalBudget) * 100))
     : Math.min(100, Math.round(50 + avgCostPct));
 
+  // Health metrics (always computable if we have CRs)
+  const timeImpactAvg  = analyses.length > 0 ? Math.min(100, Math.round(analyses.reduce((s, a) => s + (a.time_impact?.percentage || 0), 0) / analyses.length)) : 0;
+  const riskAvg        = analyses.length > 0 ? Math.min(100, Math.round(analyses.reduce((s, a) => s + (a.risk_score || 0), 0) / analyses.length)) : 0;
+
   const scatterData = allCRs.map((cr, i) => {
     const complexityScore = cr.complexity === "very_high" ? 4 : cr.complexity === "high" ? 3 : cr.complexity === "medium" ? 2 : 1;
-    const priorityScore = cr.priority === "critical" ? 4 : cr.priority === "high" ? 3 : cr.priority === "medium" ? 2 : 1;
+    const priorityScore   = cr.priority === "critical" ? 4 : cr.priority === "high" ? 3 : cr.priority === "medium" ? 2 : 1;
     return { name: `CR ${i + 1}`, complexity: complexityScore, impact: priorityScore, z: 100 };
   });
 
   return (
     <div className="space-y-6 pb-8">
-      {/* Header */}
+      {/* ── Header ── */}
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{project.name}</h1>
@@ -249,13 +269,13 @@ export default function ProjectDetail() {
         </div>
       </div>
 
-      {/* Stats */}
+      {/* ── Stats ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: "Team Size", value: `${project.team_size} members`, icon: Users, color: "text-blue-500", bg: "bg-blue-500/10", border: "border-blue-500/20" },
-          { label: "Duration", value: `${project.initial_duration} days`, icon: Clock, color: "text-purple-500", bg: "bg-purple-500/10", border: "border-purple-500/20" },
-          { label: "Stage", value: project.stage || "—", icon: Activity, color: "text-amber-500", bg: "bg-amber-500/10", border: "border-amber-500/20" },
-          { label: "Cost/Day", value: format(convert(parseFloat(project.cost_per_day || 0), project.currency)), icon: TrendingUp, color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
+          { label: "Duration",  value: `${project.initial_duration} days`, icon: Clock, color: "text-purple-500", bg: "bg-purple-500/10", border: "border-purple-500/20" },
+          { label: "Stage",     value: project.stage || "—", icon: Activity, color: "text-amber-500", bg: "bg-amber-500/10", border: "border-amber-500/20" },
+          { label: "Cost/Day",  value: format(convert(parseFloat(project.cost_per_day || 0), project.currency)), icon: TrendingUp, color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
         ].map((s) => (
           <div key={s.label} className={`rounded-2xl border ${s.border} bg-card p-4 hover:shadow-md transition-all`}>
             <div className={`h-9 w-9 rounded-xl ${s.bg} flex items-center justify-center mb-3`}>
@@ -267,7 +287,7 @@ export default function ProjectDetail() {
         ))}
       </div>
 
-      {/* Project Analytics — always visible */}
+      {/* ── Project Analytics ── */}
       <div className="space-y-4">
         <div className="flex items-center justify-between border-b border-border pb-3">
           <div className="flex items-center gap-2">
@@ -303,7 +323,7 @@ export default function ProjectDetail() {
           </div>
         ) : (
           <>
-            {/* Row 1: Progress + Status + Priority */}
+            {/* ── Row 1: Progress + Status Pie + Priority Bar ── */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <ChartCard title="Overall Progress" icon={CheckCircle} color="text-emerald-500">
                 <div className="text-center mb-4">
@@ -315,9 +335,9 @@ export default function ProjectDetail() {
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { label: "Total", val: allCRs.length, c: "text-foreground" },
-                    { label: "Approved", val: approvedCount, c: "text-emerald-500" },
-                    { label: "Pending", val: pendingCount, c: "text-amber-500" },
+                    { label: "Total",    val: allCRs.length,   c: "text-foreground" },
+                    { label: "Approved", val: approvedCount,    c: "text-emerald-500" },
+                    { label: "Pending",  val: pendingCount,     c: "text-amber-500" },
                   ].map((s) => (
                     <div key={s.label} className="text-center rounded-xl bg-accent/50 p-2">
                       <div className={`text-xl font-bold ${s.c}`}>{s.val}</div>
@@ -330,26 +350,26 @@ export default function ProjectDetail() {
               <ChartCard title="Approval Status" icon={Activity} color="text-purple-500">
                 <ResponsiveContainer width="100%" height={220}>
                   <PieChart margin={{ top: 0, bottom: 0 }}>
-                    <Pie data={statusChartData} dataKey="value" cx="50%" cy="45%" outerRadius={65}
-                      labelLine={false} fontSize={10}>
+                    <Pie data={statusChartData} dataKey="value" cx="50%" cy="44%" outerRadius={68}
+                      innerRadius={28} labelLine={false} paddingAngle={2}>
                       {statusChartData.map((entry, i) => (
                         <Cell key={i} fill={STATUS_COLORS[entry.rawName] || PIE_COLORS[i % PIE_COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip contentStyle={tooltipStyle} />
-                    <Legend verticalAlign="bottom" height={36} />
+                    <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipItemStyle} />
+                    <Legend verticalAlign="bottom" height={36} formatter={legendFormatter} />
                   </PieChart>
                 </ResponsiveContainer>
               </ChartCard>
 
               <ChartCard title="Priority Breakdown" icon={AlertTriangle} color="text-amber-500">
                 <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={priorityChartData} layout="vertical" margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
+                  <BarChart data={priorityChartData} layout="vertical" margin={{ top: 4, right: 16, left: 4, bottom: 4 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis type="number" fontSize={10} allowDecimals={false} />
-                    <YAxis type="category" dataKey="name" fontSize={10} width={72} />
-                    <Tooltip contentStyle={tooltipStyle} />
-                    <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                    <XAxis type="number" fontSize={10} tick={axisTick} allowDecimals={false} />
+                    <YAxis type="category" dataKey="name" fontSize={10} tick={axisTick} width={72} />
+                    <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipItemStyle} cursor={{ fill: "hsl(var(--accent))", opacity: 0.5 }} />
+                    <Bar dataKey="value" name="Count" radius={[0, 4, 4, 0]}>
                       {priorityChartData.map((entry, i) => (
                         <Cell key={i} fill={PRIORITY_COLORS[entry.rawName] || PIE_COLORS[i % PIE_COLORS.length]} />
                       ))}
@@ -359,16 +379,16 @@ export default function ProjectDetail() {
               </ChartCard>
             </div>
 
-            {/* Row 2: Type volume + Team workload */}
+            {/* ── Row 2: CR Type Volume + Team Workload ── */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <ChartCard title="Change Request Volume by Type" icon={BarChart3} color="text-blue-500">
                 <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={typeChartData}>
+                  <BarChart data={typeChartData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="name" fontSize={11} />
-                    <YAxis fontSize={11} allowDecimals={false} />
-                    <Tooltip contentStyle={tooltipStyle} />
-                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                    <XAxis dataKey="name" fontSize={11} tick={axisTick} />
+                    <YAxis fontSize={11} tick={axisTick} allowDecimals={false} />
+                    <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipItemStyle} cursor={{ fill: "hsl(var(--accent))", opacity: 0.5 }} />
+                    <Bar dataKey="value" name="Count" radius={[4, 4, 0, 0]}>
                       {typeChartData.map((_, i) => (
                         <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                       ))}
@@ -381,14 +401,14 @@ export default function ProjectDetail() {
                 {effortPieData.length > 0 ? (
                   <ResponsiveContainer width="100%" height={240}>
                     <PieChart margin={{ top: 0, bottom: 0 }}>
-                      <Pie data={effortPieData} dataKey="value" cx="50%" cy="45%"
-                        innerRadius={45} outerRadius={72} labelLine={false} fontSize={10}>
+                      <Pie data={effortPieData} dataKey="value" cx="50%" cy="44%"
+                        innerRadius={45} outerRadius={72} labelLine={false} paddingAngle={3}>
                         {effortPieData.map((_, i) => (
                           <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip contentStyle={tooltipStyle} formatter={(v: number, name: string) => [`${v} days`, name]} />
-                      <Legend verticalAlign="bottom" height={36} />
+                      <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipItemStyle} formatter={(v: number, name: string) => [`${v} days`, name]} />
+                      <Legend verticalAlign="bottom" height={36} formatter={legendFormatter} />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
@@ -400,7 +420,43 @@ export default function ProjectDetail() {
               </ChartCard>
             </div>
 
-            {/* Aggregated analysis charts */}
+            {/* ── Project Health Dashboard (always shows when there are CRs) ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <ChartCard title="Project Health Dashboard" icon={Zap} color="text-primary">
+                <div className="space-y-3">
+                  {[
+                    { label: "Budget Utilization",  val: budgetUsedPct },
+                    { label: "Timeline Impact",     val: timeImpactAvg },
+                    { label: "Completion Progress", val: progressPct },
+                    { label: "Risk Exposure",       val: riskAvg },
+                  ].map((item) => {
+                    const color = item.val > 85 ? "#ef4444" : item.val > 65 ? "#f59e0b" : "#10b981";
+                    return (
+                      <div key={item.label}>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-muted-foreground">{item.label}</span>
+                          <span className="font-semibold" style={{ color }}>{item.val}%</span>
+                        </div>
+                        <div className="w-full h-2.5 bg-accent rounded-full overflow-hidden">
+                          <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, item.val)}%`, background: color }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </ChartCard>
+
+              <ChartCard title="Budget Utilization" icon={TrendingUp} color="text-amber-500">
+                <BudgetGauge
+                  percentage={budgetUsedPct}
+                  usedAmount={format(convert(totalCostUsed, project.currency))}
+                  remainingAmount={format(convert(Math.max(0, totalBudget - totalCostUsed), project.currency))}
+                  totalAmount={format(convert(totalBudget, project.currency))}
+                />
+              </ChartCard>
+            </div>
+
+            {/* ── Aggregated analysis charts ── */}
             {hasAnalysisCharts && aggregated && (
               <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5 space-y-4">
                 <h3 className="font-semibold flex items-center gap-2">
@@ -411,119 +467,137 @@ export default function ProjectDetail() {
               </div>
             )}
 
+            {/* ── Cost & Risk trends (only when analyses exist) ── */}
             {hasAnalysisCharts && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <ChartCard title="Cost Trend Across CRs" icon={TrendingUp} color="text-indigo-500">
-                  <ResponsiveContainer width="100%" height={220}>
-                    <AreaChart data={costTrendData}>
-                      <defs>
-                        <linearGradient id="costGradPD" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="cr" fontSize={10} />
-                      <YAxis fontSize={10} tickFormatter={(v) => `${Math.round(v / 1000)}k`} />
-                      <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [format(convert(v, project.currency)), ""]} />
-                      <Area type="monotone" dataKey="cost" stroke="#6366f1" fill="url(#costGradPD)" strokeWidth={2} dot={{ r: 3 }} />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                  {costTrendData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={220}>
+                      <AreaChart data={costTrendData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
+                        <defs>
+                          <linearGradient id="costGradPD" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis dataKey="cr" fontSize={10} tick={axisTick} />
+                        <YAxis fontSize={10} tick={axisTick} tickFormatter={(v) => `${Math.round(v / 1000)}k`} />
+                        <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipItemStyle} formatter={(v: number) => [format(convert(v, project.currency)), "Cost"]} />
+                        <Area type="monotone" dataKey="cost" name="Cost Increase" stroke="#6366f1" fill="url(#costGradPD)" strokeWidth={2.5} dot={{ r: 4, fill: "#6366f1" }} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-[220px] flex items-center justify-center text-sm text-muted-foreground">No cost data</div>
+                  )}
                 </ChartCard>
 
                 <ChartCard title="Risk Trend Across CRs" icon={AlertTriangle} color="text-red-500">
-                  <ResponsiveContainer width="100%" height={220}>
-                    <LineChart data={riskTrendData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="cr" fontSize={10} />
-                      <YAxis fontSize={10} domain={[0, 100]} />
-                      <Tooltip contentStyle={tooltipStyle} />
-                      <Line type="monotone" dataKey="risk" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 4 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  {riskTrendData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={220}>
+                      <LineChart data={riskTrendData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis dataKey="cr" fontSize={10} tick={axisTick} />
+                        <YAxis fontSize={10} tick={axisTick} domain={[0, 100]} />
+                        <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipItemStyle} />
+                        <Line type="monotone" dataKey="risk" name="Risk Score" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 4, fill: "#ef4444" }} activeDot={{ r: 6 }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-[220px] flex items-center justify-center text-sm text-muted-foreground">No risk data</div>
+                  )}
                 </ChartCard>
               </div>
             )}
 
-            {hasAnalysisCharts && burndownData.length > 0 && (
+            {/* ── Timeline Burndown + Impact vs Complexity ── */}
+            {hasAnalysisCharts && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <ChartCard title="Timeline Burndown" icon={Activity} color="text-sky-500">
-                  <ResponsiveContainer width="100%" height={220}>
-                    <ComposedChart data={burndownData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="day" fontSize={10} />
-                      <YAxis fontSize={10} unit=" d" />
-                      <Tooltip contentStyle={tooltipStyle} />
-                      <Legend />
-                      <Area type="monotone" dataKey="planned" stroke="#6366f1" fill="#6366f1" fillOpacity={0.15} />
-                      <Line type="monotone" dataKey="actual" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} />
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </ChartCard>
+                {burndownData.length > 0 ? (
+                  <ChartCard title="Timeline Burndown" icon={Activity} color="text-sky-500">
+                    <ResponsiveContainer width="100%" height={220}>
+                      <ComposedChart data={burndownData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis dataKey="day" fontSize={10} tick={axisTick} />
+                        <YAxis fontSize={10} tick={axisTick} unit=" d" />
+                        <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipItemStyle} />
+                        <Legend formatter={legendFormatter} />
+                        <Area type="monotone" dataKey="planned" name="Planned" stroke="#6366f1" fill="#6366f1" fillOpacity={0.15} strokeWidth={2} />
+                        <Line type="monotone" dataKey="actual" name="Actual" stroke="#f59e0b" strokeWidth={2.5} dot={{ r: 3, fill: "#f59e0b" }} />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </ChartCard>
+                ) : (
+                  <ChartCard title="Timeline Burndown" icon={Activity} color="text-sky-500">
+                    <div className="h-[220px] flex flex-col items-center justify-center text-muted-foreground text-sm gap-2">
+                      <Activity className="h-8 w-8 opacity-20" />
+                      <p>Submit change requests to generate burndown</p>
+                    </div>
+                  </ChartCard>
+                )}
 
-                <ChartCard title="Project Health Dashboard" icon={Zap} color="text-primary">
-                  <div className="space-y-3">
-                    {[
-                      { label: "Budget Utilization", val: budgetUsedPct },
-                      { label: "Timeline Impact", val: Math.min(100, Math.round(analyses.reduce((s, a) => s + (a.time_impact?.percentage || 0), 0) / analyses.length)) },
-                      { label: "Completion Progress", val: progressPct },
-                      { label: "Risk Exposure", val: Math.min(100, Math.round(analyses.reduce((s, a) => s + (a.risk_score || 0), 0) / analyses.length)) },
-                    ].map((item) => {
-                      const color = item.val > 85 ? "#ef4444" : item.val > 65 ? "#f59e0b" : "#10b981";
-                      return (
-                        <div key={item.label}>
-                          <div className="flex justify-between text-xs mb-1">
-                            <span className="text-muted-foreground">{item.label}</span>
-                            <span className="font-semibold" style={{ color }}>{item.val}%</span>
-                          </div>
-                          <div className="w-full h-2.5 bg-accent rounded-full overflow-hidden">
-                            <div className="h-full rounded-full" style={{ width: `${item.val}%`, background: color }} />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                <ChartCard title="Impact vs Complexity" icon={AlertTriangle} color="text-purple-500">
+                  {scatterData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={220}>
+                      <ScatterChart margin={{ top: 4, right: 24, left: 4, bottom: 20 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis
+                          type="number" dataKey="complexity" name="Complexity"
+                          ticks={[1, 2, 3, 4]}
+                          tickFormatter={(v) => v === 1 ? "Low" : v === 2 ? "Med" : v === 3 ? "High" : "V.High"}
+                          fontSize={10} tick={axisTick}
+                          label={{ value: "Complexity", position: "insideBottom", offset: -12, fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                        />
+                        <YAxis
+                          type="number" dataKey="impact" name="Priority"
+                          ticks={[1, 2, 3, 4]}
+                          tickFormatter={(v) => v === 1 ? "Low" : v === 2 ? "Med" : v === 3 ? "High" : "Crit"}
+                          fontSize={10} tick={axisTick}
+                          label={{ value: "Priority", angle: -90, position: "insideLeft", fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                        />
+                        <ZAxis type="number" dataKey="z" range={[80, 140]} />
+                        <Tooltip
+                          contentStyle={tooltipStyle}
+                          itemStyle={tooltipItemStyle}
+                          cursor={{ strokeDasharray: "3 3" }}
+                          content={({ payload }) => {
+                            if (!payload?.length) return null;
+                            const d = payload[0].payload;
+                            const cLabels = ["", "Low", "Medium", "High", "Very High"];
+                            const pLabels = ["", "Low", "Medium", "High", "Critical"];
+                            return (
+                              <div style={tooltipStyle} className="p-3">
+                                <p className="font-semibold text-sm mb-1">{d.name}</p>
+                                <p className="text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>Complexity: {cLabels[d.complexity]}</p>
+                                <p className="text-xs" style={{ color: "hsl(var(--muted-foreground))" }}>Priority: {pLabels[d.impact]}</p>
+                              </div>
+                            );
+                          }}
+                        />
+                        <Scatter data={scatterData} fill="#8b5cf6" fillOpacity={0.75} />
+                      </ScatterChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-[220px] flex items-center justify-center text-sm text-muted-foreground">No data</div>
+                  )}
                 </ChartCard>
               </div>
             )}
 
+            {/* ── Quality Metrics ── */}
             {hasAnalysisCharts && (
               <ChartCard title="Quality Metrics" icon={CheckCircle} color="text-emerald-500">
                 <QualityMetricsCards
-                  qualityImpact={Math.round(analyses.reduce((s, a) => s + ((a as { quality_impact?: number }).quality_impact || a.risk_breakdown?.quality || 0), 0) / analyses.length)}
-                  maintainabilityImpact={Math.round(analyses.reduce((s, a) => s + ((a as { maintainability_impact?: number }).maintainability_impact || 0), 0) / analyses.length)}
+                  qualityImpact={Math.round(analyses.reduce((s, a) => s + ((a as any).quality_impact || a.risk_breakdown?.quality || 0), 0) / analyses.length)}
+                  maintainabilityImpact={Math.round(analyses.reduce((s, a) => s + ((a as any).maintainability_impact || 0), 0) / analyses.length)}
                 />
               </ChartCard>
             )}
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <ChartCard title="Budget Utilization" icon={TrendingUp} color="text-amber-500">
-                <BudgetGauge
-                  percentage={budgetUsedPct}
-                  usedAmount={format(convert(totalCostUsed, project.currency))}
-                  remainingAmount={format(convert(Math.max(0, totalBudget - totalCostUsed), project.currency))}
-                  totalAmount={format(convert(totalBudget, project.currency))}
-                />
-              </ChartCard>
-
-              <ChartCard title="Impact vs Complexity" icon={AlertTriangle} color="text-purple-500">
-                <ResponsiveContainer width="100%" height={220}>
-                  <ScatterChart>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis type="number" dataKey="complexity" ticks={[1, 2, 3, 4]} tickFormatter={(v) => v === 1 ? "Low" : v === 2 ? "Med" : v === 3 ? "High" : "V.High"} fontSize={10} />
-                    <YAxis type="number" dataKey="impact" ticks={[1, 2, 3, 4]} fontSize={10} />
-                    <ZAxis type="number" dataKey="z" range={[100, 150]} />
-                    <Tooltip contentStyle={tooltipStyle} />
-                    <Scatter data={scatterData} fill="#8b5cf6" fillOpacity={0.7} />
-                  </ScatterChart>
-                </ResponsiveContainer>
-              </ChartCard>
-            </div>
           </>
         )}
       </div>
 
-      {/* Team */}
+      {/* ── Team ── */}
       {project.members?.length > 0 && (
         <div className="rounded-2xl border border-border bg-card p-5">
           <h2 className="font-semibold mb-3 flex items-center gap-2">
@@ -545,7 +619,7 @@ export default function ProjectDetail() {
         </div>
       )}
 
-      {/* Requirements */}
+      {/* ── Requirements ── */}
       <div className="rounded-2xl border border-border bg-card shadow-sm">
         <div className="flex items-center justify-between border-b border-border p-5">
           <h2 className="font-semibold flex items-center gap-2">
@@ -553,14 +627,16 @@ export default function ProjectDetail() {
             Requirements ({project.requirements?.length || 0})
           </h2>
           {!isClient && (
-            <button onClick={() => setShowAddReq(true)}
-              className="flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20">
+            <button
+              onClick={() => setShowAddReq(true)}
+              className="flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20"
+            >
               <Plus className="h-3.5 w-3.5" /> Add Requirement
             </button>
           )}
         </div>
 
-        {!(project.requirements?.length) ? (
+        {!project.requirements?.length ? (
           <div className="p-10 text-center">
             <FileText className="h-10 w-10 mx-auto mb-3 text-muted-foreground/20" />
             <p className="text-sm text-muted-foreground">No requirements yet.</p>
@@ -573,13 +649,11 @@ export default function ProjectDetail() {
         ) : (
           <div className="divide-y divide-border">
             {project.requirements.map((req: any) => {
-              const reqCRs = allCRs.filter((c) => c.requirement_id === req.id);
-              const isOpen = expandedReqs.has(req.id);
-              const reqAnalyses = reqCRs
-                .filter((c) => analysisByCrId[c.id])
-                .map((c) => analysisByCrId[c.id]);
+              const reqCRs       = allCRs.filter((c) => c.requirement_id === req.id);
+              const isOpen       = expandedReqs.has(req.id);
+              const reqAnalyses  = reqCRs.filter((c) => analysisByCrId[c.id]).map((c) => analysisByCrId[c.id]);
               const reqAggregated = aggregateAnalyses(reqAnalyses);
-              const reqApproved = reqCRs.filter((c) => c.status === "approved" || c.status === "implemented").length;
+              const reqApproved  = reqCRs.filter((c) => c.status === "approved" || c.status === "implemented").length;
               const reqProgressPct = reqCRs.length > 0 ? Math.round((reqApproved / reqCRs.length) * 100) : 0;
 
               return (
@@ -589,7 +663,9 @@ export default function ProjectDetail() {
                     onClick={() => toggleReq(req.id)}
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      {isOpen ? <ChevronDown className="h-4 w-4 text-primary shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+                      {isOpen
+                        ? <ChevronDown className="h-4 w-4 text-primary shrink-0" />
+                        : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
                       <div className="min-w-0">
                         <p className="font-medium text-sm">{req.title}</p>
                         {req.description && <p className="text-xs text-muted-foreground truncate max-w-md">{req.description}</p>}
@@ -598,7 +674,9 @@ export default function ProjectDetail() {
                     <div className="flex items-center gap-2 shrink-0 ml-3" onClick={(e) => e.stopPropagation()}>
                       <StatusBadge status={req.complexity} />
                       <StatusBadge status={req.priority} />
-                      <span className="text-xs bg-accent/70 rounded-lg px-2 py-1">{reqCRs.length} CRs · {reqProgressPct}%</span>
+                      <span className="text-xs bg-accent/70 rounded-lg px-2 py-1">
+                        {reqCRs.length} CRs · {reqProgressPct}%
+                      </span>
                       {!isClient && (
                         <button onClick={() => deleteReq(req.id)} className="text-red-400 hover:bg-red-500/10 rounded-lg p-1.5">
                           <Trash2 className="h-3.5 w-3.5" />
@@ -634,7 +712,7 @@ export default function ProjectDetail() {
                         ) : (
                           reqCRs.map((cr: any) => {
                             const crAnalysis = analysisByCrId[cr.id];
-                            const isCrOpen = expandedCrId === cr.id;
+                            const isCrOpen   = expandedCrId === cr.id;
                             return (
                               <div key={cr.id}>
                                 <div
@@ -662,7 +740,9 @@ export default function ProjectDetail() {
                                         <ExternalLink className="h-3 w-3" /> Full Page
                                       </Link>
                                     )}
-                                    {isCrOpen ? <ChevronDown className="h-4 w-4 text-primary" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                                    {isCrOpen
+                                      ? <ChevronDown className="h-4 w-4 text-primary" />
+                                      : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                                   </div>
                                 </div>
 
@@ -703,41 +783,72 @@ export default function ProjectDetail() {
         )}
       </div>
 
+      {/* ── Add Requirement Modal ── */}
       <ViewportModal open={showAddReq} onClose={() => setShowAddReq(false)} maxWidth="max-w-md" title="Add Requirement">
-        <h2 className="text-lg font-bold mb-1">Add Requirement</h2>
+        <h2 className="text-lg font-bold mb-1 pr-6">Add Requirement</h2>
         <p className="text-xs text-muted-foreground mb-5">Define a requirement to track change requests against.</p>
         <form onSubmit={addReq} className="space-y-4">
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">Title *</label>
-            <input type="text" value={reqForm.title} onChange={(e) => setReqForm({ ...reqForm, title: e.target.value })} required
-              className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary outline-none" />
+            <input
+              type="text"
+              value={reqForm.title}
+              onChange={(e) => setReqForm({ ...reqForm, title: e.target.value })}
+              required
+              className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+            />
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">Description</label>
-            <textarea value={reqForm.description} onChange={(e) => setReqForm({ ...reqForm, description: e.target.value })} rows={3}
-              className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none resize-none" />
+            <textarea
+              value={reqForm.description}
+              onChange={(e) => setReqForm({ ...reqForm, description: e.target.value })}
+              rows={3}
+              className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none resize-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+            />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Complexity</label>
-              <select value={reqForm.complexity} onChange={(e) => setReqForm({ ...reqForm, complexity: e.target.value })}
-                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm">
-                <option value="low">Low</option><option value="medium">Medium</option>
-                <option value="high">High</option><option value="very_high">Very High</option>
+              <select
+                value={reqForm.complexity}
+                onChange={(e) => setReqForm({ ...reqForm, complexity: e.target.value })}
+                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary outline-none"
+              >
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="very_high">Very High</option>
               </select>
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Priority</label>
-              <select value={reqForm.priority} onChange={(e) => setReqForm({ ...reqForm, priority: e.target.value })}
-                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm">
-                <option value="low">Low</option><option value="medium">Medium</option>
-                <option value="high">High</option><option value="critical">Critical</option>
+              <select
+                value={reqForm.priority}
+                onChange={(e) => setReqForm({ ...reqForm, priority: e.target.value })}
+                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary outline-none"
+              >
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="critical">Critical</option>
               </select>
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={() => setShowAddReq(false)} className="rounded-xl border px-4 py-2 text-sm hover:bg-accent">Cancel</button>
-            <button type="submit" className="rounded-xl bg-primary px-6 py-2 text-sm font-semibold text-primary-foreground">Add Requirement</button>
+            <button
+              type="button"
+              onClick={() => setShowAddReq(false)}
+              className="rounded-xl border border-border px-4 py-2 text-sm hover:bg-accent transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="rounded-xl bg-primary px-6 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all"
+            >
+              Add Requirement
+            </button>
           </div>
         </form>
       </ViewportModal>

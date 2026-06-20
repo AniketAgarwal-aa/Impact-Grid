@@ -21,7 +21,7 @@ export function ViewportModal({
   className,
   maxWidth = "max-w-md",
   title,
-  showClose = false,
+  showClose = true,
 }: ViewportModalProps) {
   useEffect(() => {
     if (!open) return;
@@ -40,16 +40,20 @@ export function ViewportModal({
   if (!open) return null;
 
   return createPortal(
+    /* Backdrop: fixed to viewport, flex-centered. NO overflow-y-auto here —
+       that would create a scroll ctx where my-auto centers relative to
+       the scrolled document, not the screen. */
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto p-4 bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-label={title}
     >
+      {/* Panel: scrolls internally if content is taller than 90 vh */}
       <div
         className={cn(
-          "relative w-full my-auto rounded-2xl border border-border bg-card p-6 shadow-2xl animate-scale-in",
+          "relative w-full my-4 mx-4 rounded-2xl border border-border bg-card p-6 shadow-2xl animate-scale-in max-h-[90vh] overflow-y-auto",
           maxWidth,
           className,
         )}
@@ -59,7 +63,7 @@ export function ViewportModal({
           <button
             type="button"
             onClick={onClose}
-            className="absolute right-4 top-4 rounded-lg p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            className="absolute right-4 top-4 rounded-lg p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors z-10"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
