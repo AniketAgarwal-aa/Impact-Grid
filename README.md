@@ -53,8 +53,3 @@ npm run dev
 ## Environment Variables
 Create a `.env` file in the `backend` folder and refer to the `.env.example` file for the required keys (like `DATABASE_URL`, `SECRET_KEY`, etc.).
 
-## Demo Accounts
-You can test the system locally with the following default accounts:
-- **Admin**: `admin1@impactstudio.com` / `password`
-- **PM**: `pm@impactgrid.com` / `password123`
-- **Client**: `client@impactgrid.com` / `password123`
