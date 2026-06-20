@@ -482,6 +482,105 @@ def init_db():
             db.add(indian_cr)
             db.commit()
 
+        # Seed additional requirements and change requests for richer Indian demo
+        indian_reqs_crs = [
+            {
+                "req_title": "Fraud Detection System",
+                "req_desc": "Real-time fraud detection for UPI transactions",
+                "crs": [
+                    {
+                        "desc": "Integrate ML-based fraud detection model for anomaly scoring",
+                        "change_type": "addition", "priority": "critical", "complexity": "very_high",
+                        "status": "submitted"
+                    },
+                    {
+                        "desc": "Add rule-based velocity checks (10 transactions/hour limit)",
+                        "change_type": "modification", "priority": "high", "complexity": "medium",
+                        "status": "approved"
+                    },
+                ]
+            },
+            {
+                "req_title": "Multi-Bank Connectivity",
+                "req_desc": "Connect with 15+ Indian banks via NPCI APIs",
+                "crs": [
+                    {
+                        "desc": "Add SBI, HDFC, ICICI bank API connectors via NPCI",
+                        "change_type": "addition", "priority": "high", "complexity": "high",
+                        "status": "submitted"
+                    },
+                    {
+                        "desc": "Implement bank failover and retry mechanism for down banks",
+                        "change_type": "addition", "priority": "medium", "complexity": "medium",
+                        "status": "draft"
+                    },
+                ]
+            },
+            {
+                "req_title": "Merchant Dashboard",
+                "req_desc": "Dashboard for merchants to track settlements and disputes",
+                "crs": [
+                    {
+                        "desc": "Build merchant settlement report with GST breakdown",
+                        "change_type": "addition", "priority": "medium", "complexity": "medium",
+                        "status": "approved"
+                    },
+                    {
+                        "desc": "Add dispute resolution workflow for chargebacks",
+                        "change_type": "addition", "priority": "high", "complexity": "high",
+                        "status": "submitted"
+                    },
+                    {
+                        "desc": "Real-time transaction webhook notifications for merchants",
+                        "change_type": "addition", "priority": "medium", "complexity": "low",
+                        "status": "implemented"
+                    },
+                ]
+            },
+            {
+                "req_title": "Regulatory Compliance",
+                "req_desc": "RBI and NPCI compliance requirements",
+                "crs": [
+                    {
+                        "desc": "Implement RBI two-factor authentication mandate for transactions > ₹5000",
+                        "change_type": "addition", "priority": "critical", "complexity": "high",
+                        "status": "approved"
+                    },
+                    {
+                        "desc": "Add audit trail logging for all UPI transactions (RBI mandate)",
+                        "change_type": "addition", "priority": "high", "complexity": "medium",
+                        "status": "implemented"
+                    },
+                ]
+            },
+        ]
+        for item in indian_reqs_crs:
+            req = db.query(Requirement).filter(Requirement.title == item["req_title"]).first()
+            if not req:
+                req = Requirement(
+                    project_id=indian_project.id,
+                    title=item["req_title"],
+                    description=item["req_desc"],
+                    complexity="high",
+                    priority="high",
+                    created_by=indian_pm_user.id
+                )
+                db.add(req)
+                db.commit()
+            for cr_data in item["crs"]:
+                cr_exists = db.query(ChangeRequest).filter(ChangeRequest.description == cr_data["desc"]).first()
+                if not cr_exists:
+                    db.add(ChangeRequest(
+                        requirement_id=req.id,
+                        change_type=cr_data["change_type"],
+                        priority=cr_data["priority"],
+                        complexity=cr_data["complexity"],
+                        description=cr_data["desc"],
+                        status=cr_data["status"],
+                        submitted_by=indian_client_user.id
+                    ))
+            db.commit()
+
         db.commit()
         print("[OK] Database initialized successfully (v5.1)")
     except Exception as e:

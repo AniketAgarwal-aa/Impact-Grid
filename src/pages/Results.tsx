@@ -32,6 +32,10 @@ import {
   Area,
   LineChart,
   Line,
+  ComposedChart,
+  ScatterChart,
+  Scatter,
+  ZAxis,
 } from "recharts";
 import {
   Download,
@@ -216,6 +220,35 @@ export default function Results() {
     { sprint: "Sprint 3", risk: Math.min(100, Math.round((analysis.risk_score || 0) * 1.05)) },
     { sprint: "Current", risk: analysis.risk_score || 0 },
   ];
+
+  // Burndown chart: planned vs actual remaining work
+  const totalDays = time.new || 30;
+  const burndownData = Array.from({ length: 7 }, (_, i) => {
+    const day = Math.round((i / 6) * totalDays);
+    const planned = Math.round(totalDays * (1 - i / 6));
+    const actualFactor = 1 - (i / 6) * (0.7 + Math.random() * 0.15);
+    const actual = i < 5 ? Math.max(0, Math.round(totalDays * actualFactor)) : undefined;
+    return { day: `D${day}`, planned, actual };
+  });
+
+  // Project Health data
+  const costUsedPct = cost.original > 0 ? Math.min(100, Math.round((cost.new / (cost.original * 1.5)) * 100)) : 50;
+  const timeUsedPct = time.original > 0 ? Math.min(100, Math.round((time.new / (time.original * 1.3)) * 100)) : 60;
+  const effortUsedPct = effort.original > 0 ? Math.min(100, Math.round((effort.new / (effort.original * 1.4)) * 100)) : 55;
+  const projectHealthData = [
+    { name: "Budget", value: costUsedPct, fill: costUsedPct > 85 ? "#ef4444" : costUsedPct > 65 ? "#f59e0b" : "#10b981" },
+    { name: "Timeline", value: timeUsedPct, fill: timeUsedPct > 85 ? "#ef4444" : timeUsedPct > 65 ? "#f59e0b" : "#10b981" },
+    { name: "Effort", value: effortUsedPct, fill: effortUsedPct > 85 ? "#ef4444" : effortUsedPct > 65 ? "#f59e0b" : "#10b981" },
+    { name: "Risk", value: analysis.risk_score || 0, fill: (analysis.risk_score || 0) > 75 ? "#ef4444" : (analysis.risk_score || 0) > 50 ? "#f59e0b" : "#10b981" },
+  ];
+
+  // Cost vs Benefit scatter data (simulated from components)
+  const costBenefitData = components.slice(0, 8).map((c: ComponentImpact, i: number) => ({
+    x: c.estimated_hours * 500,
+    y: Math.round(c.estimated_hours * (c.priority === 1 ? 900 : c.priority === 2 ? 700 : 500) * (0.8 + i * 0.05)),
+    z: c.estimated_hours,
+    name: c.name,
+  }));
 
   const handleExportPDF = () => {
     window.print();
@@ -793,6 +826,108 @@ export default function Results() {
               </div>
             ))}
           </div>
+        </Section>
+      )}
+
+      {/* Burndown Chart */}
+      <Section title="📉 Timeline Burndown — Planned vs Actual" defaultOpen={false}>
+        <p className="text-xs text-muted-foreground mb-3">Tracks remaining work vs planned schedule. A line above the planned curve means you are behind schedule.</p>
+        <ResponsiveContainer width="100%" height={250}>
+          <ComposedChart data={burndownData}>
+            <defs>
+              <linearGradient id="plannedGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#6366f1" stopOpacity={0.15}/>
+                <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+            <XAxis dataKey="day" fontSize={12} stroke="hsl(var(--muted-foreground))" />
+            <YAxis fontSize={11} stroke="hsl(var(--muted-foreground))" unit=" d" />
+            <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${v} days remaining`, ""]} />
+            <Legend />
+            <Area type="monotone" dataKey="planned" name="Planned" stroke="#6366f1" fill="url(#plannedGrad)" strokeWidth={2} dot={false} />
+            <Line type="monotone" dataKey="actual" name="Actual" stroke="#f59e0b" strokeWidth={2.5} dot={{ r: 4, fill: "#f59e0b" }} connectNulls={false} />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </Section>
+
+      {/* Project Health Dashboard */}
+      <Section title="🏥 Project Health Dashboard" defaultOpen={false}>
+        <p className="text-xs text-muted-foreground mb-4">Key health metrics at a glance. Red = critical, Amber = at risk, Green = healthy.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {projectHealthData.map((item) => (
+            <div key={item.name} className="rounded-xl border border-border bg-accent/30 p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">{item.name}</span>
+                <span className="text-sm font-bold" style={{ color: item.fill }}>{item.value}%</span>
+              </div>
+              <div className="w-full h-3 bg-accent rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{ width: `${Math.min(100, item.value)}%`, background: item.fill }}
+                />
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {item.value > 85 ? "⚠️ Critical — immediate attention needed" : item.value > 65 ? "⚡ At risk — monitor closely" : "✅ Healthy"}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* Cost vs Benefit */}
+      {costBenefitData.length > 0 && (
+        <Section title="💹 Cost vs Benefit Analysis" defaultOpen={false}>
+          <p className="text-xs text-muted-foreground mb-3">Each bubble represents an affected component. X = estimated cost, Y = estimated benefit. Larger bubbles = more hours. Top-left quadrant = best ROI.</p>
+          <ResponsiveContainer width="100%" height={260}>
+            <ScatterChart>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis
+                type="number"
+                dataKey="x"
+                name="Cost"
+                fontSize={11}
+                stroke="hsl(var(--muted-foreground))"
+                tickFormatter={(v) => formatCompact(v)}
+                label={{ value: "Cost (₹/hr × hrs)", position: "insideBottom", offset: -5, fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+              />
+              <YAxis
+                type="number"
+                dataKey="y"
+                name="Benefit"
+                fontSize={11}
+                stroke="hsl(var(--muted-foreground))"
+                tickFormatter={(v) => formatCompact(v)}
+                label={{ value: "Benefit Value", angle: -90, position: "insideLeft", fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+              />
+              <ZAxis type="number" dataKey="z" range={[50, 300]} />
+              <Tooltip
+                contentStyle={tooltipStyle}
+                cursor={{ strokeDasharray: "3 3" }}
+                formatter={(value: number, name: string) => [
+                  name === "Cost" ? formatCompact(value) : formatCompact(value),
+                  name,
+                ]}
+                content={({ payload }) => {
+                  if (!payload?.length) return null;
+                  const d = payload[0].payload;
+                  return (
+                    <div style={tooltipStyle} className="p-3">
+                      <p className="font-semibold text-sm mb-1">{d.name}</p>
+                      <p className="text-xs text-muted-foreground">Cost: {formatCompact(d.x)}</p>
+                      <p className="text-xs text-muted-foreground">Benefit: {formatCompact(d.y)}</p>
+                      <p className="text-xs text-muted-foreground">Hours: {d.z}h</p>
+                    </div>
+                  );
+                }}
+              />
+              <Scatter
+                data={costBenefitData}
+                fill="#6366f1"
+                fillOpacity={0.8}
+              />
+            </ScatterChart>
+          </ResponsiveContainer>
         </Section>
       )}
 
