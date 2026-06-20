@@ -3,7 +3,7 @@
  * Full v5.0 breakdown: 6-cost / 5-time / 3-effort / 5-risk
  */
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
 import { api } from "@/services/api";
 import { useAuthStore } from "@/stores/authStore";
 import { useCurrencyStore } from "@/stores/currencyStore";
@@ -143,8 +143,11 @@ function Section({
 
 export default function Results() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const { user } = useAuthStore();
   const isClient = user?.role === "client";
+  const fromSubmit = searchParams.get("from") === "submit";
+  const returnProjectId = searchParams.get("project_id");
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [showSave, setShowSave] = useState(false);
@@ -262,6 +265,11 @@ export default function Results() {
           <div>
             <h1 className="text-2xl font-bold">Change Impact Summary</h1>
             <p className="text-muted-foreground text-sm mt-1">{analysis.project_name}</p>
+            {fromSubmit && returnProjectId && (
+              <Link to={`/projects/${returnProjectId}`} className="mt-2 inline-flex text-sm text-primary hover:underline">
+                ← Back to project dashboard
+              </Link>
+            )}
           </div>
           <button
             onClick={handleExportPDF}
@@ -326,7 +334,15 @@ export default function Results() {
               {analysis.confidence_score}%
             </span>
           </p>
-          <div className="flex flex-wrap gap-2 mt-2">
+          {fromSubmit && returnProjectId && (
+          <Link
+            to={`/projects/${returnProjectId}`}
+            className="mt-2 inline-flex items-center gap-1 text-sm text-primary hover:underline"
+          >
+            ← Back to project dashboard
+          </Link>
+        )}
+        <div className="flex flex-wrap gap-2 mt-2">
             <StatusBadge
               status={
                 analysis.change_size?.toLowerCase() === "small"

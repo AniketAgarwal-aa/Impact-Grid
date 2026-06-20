@@ -26,6 +26,17 @@ async def list_change_requests(
     q = db.query(ChangeRequest)
     if status:
         q = q.filter(ChangeRequest.status == status)
+    if project_id:
+        req_ids = [
+            r.id
+            for r in db.query(Requirement.id)
+            .filter(Requirement.project_id == project_id)
+            .all()
+        ]
+        if req_ids:
+            q = q.filter(ChangeRequest.requirement_id.in_(req_ids))
+        else:
+            return []
     if current_user.role == "client":
         q = q.filter(ChangeRequest.submitted_by == current_user.id)
     crs = q.order_by(ChangeRequest.created_at.desc()).limit(100).all()
