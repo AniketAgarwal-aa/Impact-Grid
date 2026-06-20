@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..dependencies import get_current_user, require_pm_or_admin
-from ..models import ChangeRequest, Notification, Project, Requirement, User
+from ..models import ChangeRequest, ImpactAnalysis, Notification, Project, Requirement, User
 from ..schemas import ApprovalRequest, ChangeRequestCreate, ChangeRequestUpdate
 from ..utils.audit import log_audit
 from ..utils.email import send_approval_email, send_decision_email
@@ -33,6 +33,7 @@ async def list_change_requests(
     for cr in crs:
         req = db.query(Requirement).filter(Requirement.id == cr.requirement_id).first()
         submitter = db.query(User).filter(User.id == cr.submitted_by).first()
+        analysis = db.query(ImpactAnalysis).filter(ImpactAnalysis.change_request_id == cr.id).order_by(ImpactAnalysis.created_at.desc()).first()
         result.append(
             {
                 "id": cr.id,
@@ -50,6 +51,7 @@ async def list_change_requests(
                 "submitted_at": cr.submitted_at,
                 "approval_comment": cr.approval_comment,
                 "created_at": cr.created_at,
+                "analysis_id": analysis.id if analysis else None,
             }
         )
     return result
@@ -65,6 +67,7 @@ async def get_change_request(
     if not cr:
         raise HTTPException(404, "Not found")
     req = db.query(Requirement).filter(Requirement.id == cr.requirement_id).first()
+    analysis = db.query(ImpactAnalysis).filter(ImpactAnalysis.change_request_id == cr_id).order_by(ImpactAnalysis.created_at.desc()).first()
     return {
         "id": cr.id,
         "status": cr.status,
@@ -84,6 +87,7 @@ async def get_change_request(
         "rejection_reason": cr.rejection_reason,
         "approval_date": cr.approval_date,
         "created_at": cr.created_at,
+        "analysis_id": analysis.id if analysis else None,
     }
 
 
@@ -117,8 +121,8 @@ async def approve_change_request(
     cr = db.query(ChangeRequest).filter(ChangeRequest.id == cr_id).first()
     if not cr:
         raise HTTPException(404, "Not found")
-    if cr.status != "submitted":
-        raise HTTPException(400, "Only submitted requests can be approved")
+    if cr.status not in ("submitted", "analyzed"):
+        raise HTTPException(400, "Only submitted or analyzed requests can be approved")
     cr.status = "approved"
     cr.approved_by = current_user.id
     cr.approval_comment = data.comment
@@ -186,8 +190,8 @@ async def reject_change_request(
     cr = db.query(ChangeRequest).filter(ChangeRequest.id == cr_id).first()
     if not cr:
         raise HTTPException(404, "Not found")
-    if cr.status != "submitted":
-        raise HTTPException(400, "Only submitted requests can be rejected")
+    if cr.status not in ("submitted", "analyzed"):
+        raise HTTPException(400, "Only submitted or analyzed requests can be rejected")
     cr.status = "rejected"
     cr.approved_by = current_user.id
     cr.rejection_reason = data.comment
