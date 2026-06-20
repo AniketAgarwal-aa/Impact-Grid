@@ -143,13 +143,15 @@ async def approve_change_request(
     if cr.submitted_by:
         submitter = db.query(User).filter(User.id == cr.submitted_by).first()
         if submitter:
+            req = db.query(Requirement).filter(Requirement.id == cr.requirement_id).first()
+            project_link = f"/projects/{req.project_id}" if req else "/projects"
             db.add(
                 Notification(
                     user_id=cr.submitted_by,
                     type="approval",
                     title="Change Request Approved",
                     message=f"Your change request has been approved by {current_user.full_name}",
-                    link=f"/results/{cr_id}",
+                    link=project_link,
                 )
             )
             db.commit()
@@ -187,6 +189,30 @@ async def overrule_change_request(
     cr.approved_by = current_user.id
     cr.approval_date = datetime.utcnow()
     db.commit()
+    
+    if cr.submitted_by:
+        submitter = db.query(User).filter(User.id == cr.submitted_by).first()
+        if submitter:
+            req = db.query(Requirement).filter(Requirement.id == cr.requirement_id).first()
+            project_link = f"/projects/{req.project_id}" if req else "/projects"
+            db.add(
+                Notification(
+                    user_id=cr.submitted_by,
+                    type="approval" if cr.status == "approved" else "rejection",
+                    title=f"Change Request {'Approved' if cr.status == 'approved' else 'Rejected'} (Overruled)",
+                    message=f"Your change request decision was overruled to {cr.status} by {current_user.full_name}: {data.comment or 'No reason given'}",
+                    link=project_link,
+                )
+            )
+            db.commit()
+            send_decision_email(
+                submitter.email,
+                cr_id,
+                cr.description[:100],
+                cr.status,
+                data.comment or "Overruled by admin",
+            )
+            
     log_audit(db, current_user.id, "OVERRULE", "change_request", cr_id)
     return {"message": f"Decision overruled — status set to {cr.status}"}
 
@@ -211,13 +237,15 @@ async def reject_change_request(
     if cr.submitted_by:
         submitter = db.query(User).filter(User.id == cr.submitted_by).first()
         if submitter:
+            req = db.query(Requirement).filter(Requirement.id == cr.requirement_id).first()
+            project_link = f"/projects/{req.project_id}" if req else "/projects"
             db.add(
                 Notification(
                     user_id=cr.submitted_by,
                     type="rejection",
                     title="Change Request Rejected",
                     message=f"Your change request was rejected: {data.comment or 'No reason given'}",
-                    link=f"/results/{cr_id}",
+                    link=project_link,
                 )
             )
             db.commit()

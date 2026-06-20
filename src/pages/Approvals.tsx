@@ -7,12 +7,12 @@ import { CheckCircle, XCircle } from "lucide-react";
 export default function Approvals() {
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [comment, setComment] = useState("");
+  const [comments, setComments] = useState<Record<number, string>>({});
 
   const load = () => {
     api
-      .getChangeRequests({ status: "submitted" })
-      .then(setRequests)
+      .getChangeRequests({})
+      .then((data) => setRequests(data.filter((c: any) => c.status === "submitted" || c.status === "analyzed")))
       .catch(() => {})
       .finally(() => setLoading(false));
   };
@@ -20,24 +20,28 @@ export default function Approvals() {
 
   const handleApprove = async (id: number) => {
     try {
-      await api.approveChangeRequest(id, comment);
+      await api.approveChangeRequest(id, comments[id] || "");
       toast.success("Approved");
       load();
-      setComment("");
-    } catch (err: unknown) {
-      toast.error(err.message);
+      setComments((prev) => ({ ...prev, [id]: "" }));
+    } catch (err: any) {
+      toast.error(err.message || "Failed to approve");
     }
   };
 
   const handleReject = async (id: number) => {
     try {
-      await api.rejectChangeRequest(id, comment);
+      await api.rejectChangeRequest(id, comments[id] || "");
       toast.success("Rejected");
       load();
-      setComment("");
-    } catch (err: unknown) {
-      toast.error(err.message);
+      setComments((prev) => ({ ...prev, [id]: "" }));
+    } catch (err: any) {
+      toast.error(err.message || "Failed to reject");
     }
+  };
+
+  const handleCommentChange = (id: number, value: string) => {
+    setComments((prev) => ({ ...prev, [id]: value }));
   };
 
   return (
@@ -75,8 +79,8 @@ export default function Approvals() {
               </div>
               <input
                 type="text"
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
+                value={comments[cr.id] || ""}
+                onChange={(e) => handleCommentChange(cr.id, e.target.value)}
                 placeholder="Comment (optional)"
                 className="w-full rounded-xl border border-border bg-background px-4 py-2 text-sm mb-3 focus:border-primary outline-none"
               />
