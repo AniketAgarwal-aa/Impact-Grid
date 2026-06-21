@@ -1,21 +1,16 @@
 """Email utilities — gracefully no-ops if SMTP not configured"""
 
 import os
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+import requests
 
-SMTP_HOST = os.getenv("SMTP_HOST", "")
-SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
-SMTP_USER = os.getenv("SMTP_USER", "")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
-FROM_EMAIL = os.getenv("FROM_EMAIL", "noreply@impactgrid.com")
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
+FROM_EMAIL = os.getenv("FROM_EMAIL", "onboarding@resend.dev")
 APP_URL = os.getenv("APP_URL", "http://localhost:5173")
 APP_NAME = "Impact Grid"
 
 
 def _send(to_email: str, subject: str, html_body: str):
-    if not SMTP_USER or not SMTP_PASSWORD:
+    if not RESEND_API_KEY:
         print("\n" + "=" * 60)
         print(f"📧 [EMAIL SIMULATION] To: {to_email}")
         print(f"Subject: {subject}")
@@ -23,18 +18,30 @@ def _send(to_email: str, subject: str, html_body: str):
         print(html_body)
         print("=" * 60 + "\n")
         return
+
+    url = "https://api.resend.com/emails"
+    headers = {
+        "Authorization": f"Bearer {RESEND_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "from": FROM_EMAIL,
+        "to": to_email,
+        "subject": subject,
+        "html": html_body
+    }
+    
     try:
-        msg = MIMEMultipart()
-        msg["From"] = FROM_EMAIL
-        msg["To"] = to_email
-        msg["Subject"] = subject
-        msg.attach(MIMEText(html_body, "html"))
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SMTP_USER, SMTP_PASSWORD)
-            server.send_message(msg)
+        response = requests.post(url, json=payload, headers=headers)
+        if response.status_code == 200:
+            print(f"[Email] Successfully sent '{subject}' to {to_email}")
+            return True
+        else:
+            print(f"[Email] Failed to send email. Error: {response.text}")
+            return False
     except Exception as e:
-        print(f"[Email] Send failed: {e}")
+        print(f"[Email] An error occurred: {e}")
+        return False
 
 
 def send_verification_email(email: str, token: str):
